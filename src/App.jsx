@@ -53,7 +53,9 @@ function defaultMatrix() {
 }
 
 // Default teams: first 6 = Team A (0), last 6 = Team B (1)
-const defaultTeams = () => [0,0,0,0,0,0,1,1,1,1,1,1];
+// Team A: Juan(0),James(2),David(3),Ross(6),Byron(7),JP(9)
+// Team B: Rob(1),Nic(4),Justin(5),Shaheed(8),Jason(10),Mike(11)
+const defaultTeams = () => [0,1,0,0,1,1,0,0,1,0,1,1];
 
 // ─── Algorithm ────────────────────────────────────────────────────────────────
 
@@ -438,9 +440,174 @@ function Survey({ saved, onComplete, onBack, onSave }) {
   );
 }
 
+
+// ─── Manual Draw ──────────────────────────────────────────────────────────────
+
+function ManualDraw({ matrix, teams, onBack }) {
+  // 3 four-balls, each = [a1, a2, b1, b2] or nulls
+  const teamA = PLAYERS.map((_,i)=>i).filter(i=>teams[i]===0);
+  const teamB = PLAYERS.map((_,i)=>i).filter(i=>teams[i]===1);
+
+  const emptyFBs = () => [[null,null,null,null],[null,null,null,null],[null,null,null,null]];
+  const [day1, setDay1] = useState(emptyFBs);
+  const [day2, setDay2] = useState(emptyFBs);
+
+  const usedInDay = (fbs) => {
+    const used = new Set();
+    fbs.forEach(fb => fb.forEach(p => { if(p!==null) used.add(p); }));
+    return used;
+  };
+
+  const setPlayer = (day, fbIdx, slot, player) => {
+    const setter = day===1 ? setDay1 : setDay2;
+    setter(prev => {
+      const next = prev.map(fb=>[...fb]);
+      // Clear player from any other slot first
+      next.forEach((fb,fi) => fb.forEach((p,si) => {
+        if(p===player && !(fi===fbIdx && si===slot)) next[fi][si]=null;
+      }));
+      next[fbIdx][slot] = player;
+      return next;
+    });
+  };
+
+  const clearSlot = (day, fbIdx, slot) => {
+    const setter = day===1 ? setDay1 : setDay2;
+    setter(prev => { const next=prev.map(fb=>[...fb]); next[fbIdx][slot]=null; return next; });
+  };
+
+  const isComplete = (fbs) => fbs.every(fb => fb.every(p=>p!==null));
+
+  const SlotPicker = ({day, fbIdx, slot, label, teamIdx, color}) => {
+    const fbs = day===1 ? day1 : day2;
+    const current = fbs[fbIdx][slot];
+    const used = usedInDay(fbs);
+    const pool = teamIdx===0 ? teamA : teamB;
+
+    return (
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:".6rem",color:"#6b8c76",marginBottom:".25rem",
+          textTransform:"uppercase",letterSpacing:".08em"}}>{label}</div>
+        <select
+          value={current ?? ""}
+          onChange={e => e.target.value==="" ? clearSlot(day,fbIdx,slot) : setPlayer(day,fbIdx,slot,Number(e.target.value))}
+          style={{
+            width:"100%", background:"rgba(0,0,0,.35)",
+            border:`1px solid ${color}40`,
+            borderRadius:6, color: current!==null ? color : "#6b8c76",
+            fontSize:".78rem", padding:".38rem .45rem",
+            fontFamily:"'Outfit',sans-serif", cursor:"pointer",
+            appearance:"none", WebkitAppearance:"none",
+          }}
+        >
+          <option value="">— pick —</option>
+          {pool.map(p => (
+            <option key={p} value={p}
+              disabled={used.has(p) && p!==current}
+              style={{color: used.has(p)&&p!==current ? "#4a4a4a":"#e8dfc8"}}>
+              {PLAYERS[p]}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
+  const FBCard = ({day, fbIdx, fbs}) => {
+    const [a1,a2,b1,b2] = fbs[fbIdx];
+    const partnerTagA = a1!==null&&a2!==null ? freqLabel(matrix[a1][a2]) : null;
+    const partnerTagB = b1!==null&&b2!==null ? freqLabel(matrix[b1][b2]) : null;
+
+    return (
+      <div className="fb" style={{marginBottom:".85rem"}}>
+        <div className="fb-head">
+          <span className="lbl">Tee Time {fbIdx+1}</span>
+          {partnerTagA && <span className="fpill">{partnerTagA}</span>}
+        </div>
+        <div className="fb-team fb-team-a" style={{gap:".5rem",flexWrap:"wrap"}}>
+          <span className="team-pill-a">A</span>
+          <SlotPicker day={day} fbIdx={fbIdx} slot={0} label="Partner 1" teamIdx={0} color="#d4a843"/>
+          <span style={{color:"rgba(255,255,255,.2)",alignSelf:"flex-end",paddingBottom:".4rem"}}>&amp;</span>
+          <SlotPicker day={day} fbIdx={fbIdx} slot={1} label="Partner 2" teamIdx={0} color="#d4a843"/>
+        </div>
+        <div className="vs-line">VS</div>
+        <div className="fb-team fb-team-b" style={{gap:".5rem",flexWrap:"wrap"}}>
+          <span className="team-pill-b">B</span>
+          <SlotPicker day={day} fbIdx={fbIdx} slot={2} label="Partner 1" teamIdx={1} color="#8ecfb0"/>
+          <span style={{color:"rgba(255,255,255,.2)",alignSelf:"flex-end",paddingBottom:".4rem"}}>&amp;</span>
+          <SlotPicker day={day} fbIdx={fbIdx} slot={3} label="Partner 2" teamIdx={1} color="#8ecfb0"/>
+          {partnerTagB && <span className="fpill" style={{marginLeft:"auto"}}>{partnerTagB}</span>}
+        </div>
+      </div>
+    );
+  };
+
+  // Cross-day duplicate detection
+  const allPairsInDay = (fbs) => {
+    const pairs = new Set();
+    fbs.forEach(fb => {
+      const players = fb.filter(p=>p!==null);
+      for(let a=0;a<players.length;a++) for(let b=a+1;b<players.length;b++)
+        pairs.add(`${Math.min(players[a],players[b])}-${Math.max(players[a],players[b])}`);
+    });
+    return pairs;
+  };
+
+  const d1pairs = allPairsInDay(day1);
+  const d2pairs = allPairsInDay(day2);
+  const dupCount = [...d1pairs].filter(k=>d2pairs.has(k)).length;
+
+  return (
+    <div>
+      <Steps cur={3}/>
+      <h1 className="display" style={{marginBottom:".2rem"}}>Manual Draw</h1>
+      <p className="muted" style={{marginBottom:"1.5rem"}}>
+        Pick partners for each tee time · history tags update automatically
+      </p>
+
+      {/* Day 1 */}
+      <div style={{marginBottom:"2rem"}}>
+        <div style={{display:"flex",alignItems:"flex-end",marginBottom:"1rem"}}>
+          <span className="dayn">1</span>
+          <div style={{paddingBottom:".55rem"}}>
+            <h2 className="heading">Day 1</h2>
+            <p className="muted" style={{marginTop:".15rem"}}>Least-familiar partners · Familiar opponents</p>
+          </div>
+        </div>
+        {[0,1,2].map(i=><FBCard key={i} day={1} fbIdx={i} fbs={day1}/>)}
+      </div>
+
+      {/* Day 2 */}
+      <div style={{marginBottom:"1.5rem"}}>
+        <div style={{display:"flex",alignItems:"flex-end",marginBottom:"1rem"}}>
+          <span className="dayn">2</span>
+          <div style={{paddingBottom:".55rem"}}>
+            <h2 className="heading">Day 2</h2>
+            <p className="muted" style={{marginTop:".15rem"}}>Most-familiar partners · Fresh opponents</p>
+          </div>
+        </div>
+        {[0,1,2].map(i=><FBCard key={i} day={2} fbIdx={i} fbs={day2}/>)}
+      </div>
+
+      {dupCount > 0 && isComplete(day1) && isComplete(day2) && (
+        <div style={{display:"flex",gap:".5rem",marginBottom:"1rem",padding:".6rem .8rem",
+          background:"rgba(196,122,58,.07)",border:"1px solid rgba(196,122,58,.2)",borderRadius:8}}>
+          <span>⚠️</span>
+          <span style={{fontSize:".78rem",color:"#c47a3a"}}>
+            <b style={{fontWeight:600}}>{dupCount} pair{dupCount!==1?"s":""}</b> appear in the same four-ball on both days
+          </span>
+        </div>
+      )}
+
+      <hr/>
+      <button className="btn btn-ghost btn-full" onClick={onBack}>← Back to Auto Schedule</button>
+    </div>
+  );
+}
+
 // ─── Results ─────────────────────────────────────────────────────────────────
 
-function Results({ matrix, teams, onEditTeams, onEditHistory, onReset }) {
+function Results({ matrix, teams, onEditTeams, onEditHistory, onReset, onManual }) {
   const [schedules, setSchedules] = useState(()=>buildSchedules(matrix, teams));
   const [gen, setGen] = useState(0);
 
@@ -565,6 +732,9 @@ function Results({ matrix, teams, onEditTeams, onEditHistory, onReset }) {
       <button className="btn btn-gold btn-full" style={{marginBottom:".6rem"}} onClick={regenerate}>
         ↺ Regenerate
       </button>
+      <button className="btn btn-teal btn-full" style={{marginBottom:".6rem"}} onClick={onManual}>
+        ✏️ Manual Draw
+      </button>
       <div style={{display:"flex",gap:".6rem"}}>
         <button className="btn btn-ghost" style={{flex:1}} onClick={onEditTeams}>← Edit Teams</button>
         <button className="btn btn-ghost" style={{flex:1}} onClick={onEditHistory}>Edit History</button>
@@ -600,7 +770,7 @@ const store = {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState("welcome");
+  const [screen, setScreen] = useState("welcome"); // welcome|survey|teams|results|manual
   const [matrix, setMatrix] = useState(()=>defaultMatrix());
   const [teams, setTeams] = useState(()=>defaultTeams());
   const [ready, setReady] = useState(false);
@@ -654,7 +824,9 @@ export default function App() {
         {screen==="results"  && <Results matrix={matrix} teams={teams}
                                   onEditTeams={()=>setScreen("teams")}
                                   onEditHistory={()=>setScreen("survey")}
+                                  onManual={()=>setScreen("manual")}
                                   onReset={handleReset}/>}
+        {screen==="manual"   && <ManualDraw matrix={matrix} teams={teams} onBack={()=>setScreen("results")}/>}
       </div>
     </>
   );
