@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<!-- saved from url=(0057)file:///C:/Users/jklopper/Downloads/tee-times-card_3.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stellenbosch Golf Club – Weekend Draw</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e2d1c; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 40px 20px; font-family: Georgia, 'Times New Roman', serif; }
+  .card { background: #1c4832; width: 480px; border-radius: 3px; color: #f5f0e8; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  .gold-bar { height: 5px; background: linear-gradient(90deg, #a07830, #c9a84c, #e8c96a, #c9a84c, #a07830); }
+
+  /* Header */
+  .header { padding: 28px 36px 22px; text-align: center; border-bottom: 1px solid rgba(201,168,76,0.3); }
+  .flag-icon { display: block; margin: 0 auto 14px; }
+  .eyebrow { color: #c9a84c; font-size: 10px; letter-spacing: 4px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; margin-bottom: 10px; }
+  .club-name { font-size: 22px; font-weight: normal; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .tagline { font-size: 11px; color: rgba(245,240,232,0.38); letter-spacing: 1.5px; font-style: italic; }
+
+  /* Teams */
+  .teams-row { display: flex; border-bottom: 1px solid rgba(201,168,76,0.2); }
+  .team-pill { flex: 1; padding: 10px 12px; text-align: center; }
+  .team-pill-a { border-right: 1px solid rgba(201,168,76,0.2); }
+  .team-pill-label { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; margin-bottom: 3px; }
+  .team-pill-a .team-pill-label { color: rgba(201,168,76,0.55); }
+  .team-pill-b .team-pill-label { color: rgba(78,207,176,0.55); }
+  .team-pill-name { font-size: 15px; font-style: italic; }
+  .team-pill-a .team-pill-name { color: #c9a84c; }
+  .team-pill-b .team-pill-name { color: #4ecfb0; }
+
+  /* Tabs */
+  .tab-bar { display: flex; background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(201,168,76,0.2); }
+  .tab-btn { flex: 1; padding: 11px 4px; text-align: center; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; cursor: pointer; color: rgba(245,240,232,0.38); background: transparent; border: none; border-bottom: 3px solid transparent; border-right: 1px solid rgba(201,168,76,0.15); transition: color 0.2s, background 0.2s; }
+  .tab-btn:last-child { border-right: none; }
+  .tab-btn:hover { color: rgba(245,240,232,0.65); background: rgba(255,255,255,0.04); }
+  .tab-btn.active { color: #c9a84c; border-bottom: 3px solid #c9a84c; background: rgba(201,168,76,0.08); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Format banner */
+  .format-banner { padding: 10px 28px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(245,240,232,0.07); display: flex; flex-direction: column; gap: 8px; }
+  .format-rule { flex: 1; padding: 8px 10px; background: rgba(0,0,0,0.2); border-radius: 3px; text-align: center; }
+  .format-day-label { font-size: 8.5px; letter-spacing: 2.5px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; margin-bottom: 4px; }
+  .format-rule:first-child .format-day-label { color: rgba(201,168,76,0.55); }
+  .format-rule:last-child .format-day-label { color: rgba(78,207,176,0.55); }
+  .format-title { font-size: 12px; color: #f5f0e8; margin-bottom: 2px; }
+  .format-sub { font-size: 10px; color: rgba(245,240,232,0.38); font-family: 'Helvetica Neue', Arial, sans-serif; font-style: italic; }
+  .format-detail { font-size: 10px; color: rgba(245,240,232,0.45); font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.5; margin-top: 6px; text-align: left; }
+
+  /* Handicap table */
+  .hcp-section { padding: 16px 28px; border-bottom: 1px solid rgba(245,240,232,0.1); }
+  .section-label { font-size: 8.5px; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; color: rgba(201,168,76,0.55); margin-bottom: 10px; text-align: center; }
+  .hcp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .hcp-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid rgba(245,240,232,0.05); }
+  .hcp-name { font-size: 12px; color: rgba(245,240,232,0.75); font-family: 'Helvetica Neue', Arial, sans-serif; }
+  .hcp-vals { display: flex; gap: 10px; align-items: center; }
+  .hcp-ch { font-size: 11px; color: rgba(245,240,232,0.3); font-family: 'Helvetica Neue', Arial, sans-serif; }
+  .hcp-play { font-size: 12px; color: #c9a84c; font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: bold; min-width: 18px; text-align: right; }
+  .hcp-arrow { font-size: 9px; color: rgba(245,240,232,0.2); }
+
+  /* Stroke index */
+  .si-section { padding: 14px 28px 16px; }
+  .si-table { width: 100%; border-collapse: collapse; font-family: 'Helvetica Neue', Arial, sans-serif; table-layout: fixed; }
+  .si-table td { text-align: center; font-size: 10.5px; padding: 4px 1px; }
+  .si-table thead td { color: rgba(245,240,232,0.35); font-size: 9px; letter-spacing: 0.5px; padding-bottom: 5px; }
+  .si-label { text-align: left !important; color: rgba(245,240,232,0.4) !important; font-size: 9px !important; letter-spacing: 1px; width: 26px; }
+  .par-row td { color: rgba(245,240,232,0.7); background: rgba(0,0,0,0.1); }
+  .si-row td { color: #c9a84c; }
+  .si-sep { color: rgba(245,240,232,0.55) !important; font-size: 10px !important; border-left: 1px solid rgba(245,240,232,0.1); padding: 0 3px !important; width: 28px; }
+
+  /* Day sections */
+  .day-section { padding: 18px 28px; }
+  .day-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .day-line { flex: 1; height: 1px; background: rgba(201,168,76,0.3); }
+  .day-text { color: #c9a84c; font-size: 9.5px; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; white-space: nowrap; }
+  .day-format-tag { font-size: 9px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .tag-scramble { background: rgba(201,168,76,0.12); color: rgba(201,168,76,0.8); border: 1px solid rgba(201,168,76,0.3); }
+  .tag-normal { background: rgba(78,207,176,0.1); color: rgba(78,207,176,0.7); border: 1px solid rgba(78,207,176,0.25); }
+
+  .tee-block { margin-bottom: 12px; }
+  .tee-block:last-child { margin-bottom: 0; }
+  .tee-header { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .tee-time-badge { background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.4); border-radius: 2px; padding: 4px 11px; }
+  .tee-time-text { color: #c9a84c; font-size: 15px; letter-spacing: 1px; }
+  .tee-divider-line { flex: 1; height: 1px; background: rgba(245,240,232,0.07); }
+
+  .four-ball { background: rgba(0,0,0,0.18); border-radius: 3px; padding: 8px 12px; }
+  .team-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .team-badge { border-radius: 10px; font-size: 8.5px; font-weight: bold; font-family: 'Helvetica Neue', Arial, sans-serif; flex-shrink: 0; padding: 2px 7px; white-space: nowrap; }
+  .badge-a { background: rgba(201,168,76,0.2); color: #c9a84c; border: 1px solid rgba(201,168,76,0.45); }
+  .badge-b { background: rgba(45,180,150,0.15); color: #4ecfb0; border: 1px solid rgba(45,180,150,0.4); }
+  .players { font-size: 12.5px; color: #f5f0e8; }
+  .phcp { font-size: 10px; color: rgba(245,240,232,0.3); font-family: 'Helvetica Neue', Arial, sans-serif; margin-left: 2px; }
+  .amp { color: rgba(245,240,232,0.3); margin: 0 4px; font-style: italic; font-size: 11px; }
+  .vs-row { text-align: center; padding: 2px 0; }
+  .vs-text { font-size: 8.5px; letter-spacing: 2px; color: rgba(245,240,232,0.22); text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+  .section-divider { margin: 0 28px; height: 1px; background: rgba(245,240,232,0.1); }
+  .footer-note { padding: 12px 28px 18px; text-align: center; }
+  .footer-text { font-size: 9.5px; color: rgba(245,240,232,0.22); font-family: 'Helvetica Neue', Arial, sans-serif; letter-spacing: 1px; font-style: italic; }
+
+  /* Accommodation property card */
+  .property-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(201,168,76,0.2); border-radius: 3px; padding: 12px 14px; margin-bottom: 14px; }
+  .property-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .property-name { font-size: 13px; color: #f5f0e8; line-height: 1.3; }
+  .property-rating { font-size: 11px; color: #c9a84c; white-space: nowrap; flex-shrink: 0; }
+  .property-reviews { color: rgba(245,240,232,0.3); }
+  .property-meta { font-size: 10px; color: rgba(245,240,232,0.35); font-family: 'Helvetica Neue', Arial, sans-serif; margin-bottom: 8px; }
+  .property-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .prop-tag { font-size: 9px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 7px; border-radius: 10px; background: rgba(245,240,232,0.06); color: rgba(245,240,232,0.45); border: 1px solid rgba(245,240,232,0.12); }
+  .warn-tag { background: rgba(201,168,76,0.08); color: rgba(201,168,76,0.6); border-color: rgba(201,168,76,0.25); }
+  .nav-buttons { display: flex; gap: 8px; margin-top: 10px; }
+  .nav-btn { display: flex; align-items: center; gap: 5px; flex: 1; justify-content: center; padding: 7px 10px; border-radius: 3px; font-size: 11px; font-family: 'Helvetica Neue', Arial, sans-serif; text-decoration: none; font-weight: bold; letter-spacing: 0.5px; }
+  .waze-btn { background: rgba(106,211,93,0.12); color: #6ad35d; border: 1px solid rgba(106,211,93,0.3); }
+  .gmaps-btn { background: rgba(66,133,244,0.12); color: #4285f4; border: 1px solid rgba(66,133,244,0.3); }
+  .transport-section { padding: 16px 28px; }
+  .car-block { background: rgba(0,0,0,0.18); border-radius: 3px; padding: 10px 14px; margin-bottom: 8px; }
+  .car-block:last-child { margin-bottom: 0; }
+  .tbd-block { background: rgba(0,0,0,0.1); border: 1px dashed rgba(245,240,232,0.1); }
+  .car-header { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .car-driver { font-size: 13px; color: #f5f0e8; flex: 1; }
+  .unconf-driver { font-size: 11px; color: rgba(245,240,232,0.35); }
+  .car-tag { font-size: 8.5px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 7px; border-radius: 10px; background: rgba(201,168,76,0.15); color: rgba(201,168,76,0.7); border: 1px solid rgba(201,168,76,0.3); white-space: nowrap; }
+  .passenger-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(245,240,232,0.6); font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 0; }
+  .pass-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(201,168,76,0.4); flex-shrink: 0; }
+  .tbd-row { color: rgba(245,240,232,0.25); font-style: italic; font-size: 11px; padding-left: 2px; }
+
+  /* Bios */
+  .bios-header { padding: 14px 28px 0; }
+  .bio-team-header { display: flex; align-items: center; gap: 10px; padding: 14px 28px 0; }
+  .bio-team-header::before, .bio-team-header::after { content: ''; flex: 1; height: 1px; }
+  .bio-team-a::before, .bio-team-a::after { background: rgba(201,168,76,0.3); }
+  .bio-team-b::before, .bio-team-b::after { background: rgba(78,207,176,0.3); }
+  .bio-team-label { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; white-space: nowrap; font-style: italic; }
+  .bio-team-a .bio-team-label { color: #c9a84c; }
+  .bio-team-b .bio-team-label { color: #4ecfb0; }
+  .bio-list { padding: 10px 28px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .bio-card { display: flex; gap: 12px; align-items: flex-start; background: rgba(0,0,0,0.18); border-radius: 3px; padding: 12px; }
+  .bio-tbd { opacity: 0.55; }
+  .bio-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; font-family: 'Helvetica Neue', Arial, sans-serif; flex-shrink: 0; letter-spacing: 0.5px; }
+  .av-gold { background: rgba(201,168,76,0.2); color: #c9a84c; border: 1px solid rgba(201,168,76,0.4); }
+  .av-teal { background: rgba(45,180,150,0.15); color: #4ecfb0; border: 1px solid rgba(45,180,150,0.35); }
+  .av-muted { background: rgba(245,240,232,0.06); color: rgba(245,240,232,0.3); border: 1px solid rgba(245,240,232,0.1); }
+  .bio-body { flex: 1; }
+  .bio-name { font-size: 13px; color: #f5f0e8; margin-bottom: 2px; }
+  .bio-sub { font-size: 10px; color: rgba(245,240,232,0.35); font-family: 'Helvetica Neue', Arial, sans-serif; font-style: italic; margin-left: 4px; }
+  .bio-title { font-size: 10px; color: #c9a84c; font-family: 'Helvetica Neue', Arial, sans-serif; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
+  .bio-text { font-size: 11px; color: rgba(245,240,232,0.55); font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.55; }
+  .accom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+  .accom-col {}
+  .accom-heading { font-size: 8.5px; letter-spacing: 2.5px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; color: rgba(201,168,76,0.5); margin-bottom: 7px; margin-top: 4px; }
+  .accom-row { display: flex; align-items: center; gap: 7px; padding: 3px 0; border-bottom: 1px solid rgba(245,240,232,0.05); font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; }
+  .confirmed-row { color: rgba(245,240,232,0.75); }
+  .tbd-accom-row { color: rgba(245,240,232,0.38); font-style: italic; }
+  .no-accom-row { color: rgba(245,240,232,0.28); font-style: italic; }
+  .accom-num { font-size: 9px; color: rgba(201,168,76,0.5); min-width: 14px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="gold-bar"></div>
+
+  <div class="header">
+    <svg class="flag-icon" width="28" height="28" viewBox="0 0 30 30">
+      <circle cx="15" cy="26" r="2.8" fill="rgba(201,168,76,0.3)"></circle>
+      <rect x="14.2" y="6" width="1.6" height="20" fill="#c9a84c"></rect>
+      <polygon points="15.8,6 25,11 15.8,16" fill="#c9a84c"></polygon>
+    </svg>
+    <div class="eyebrow">Golf Weekend · 2026</div>
+    <div class="club-name">Stellenbosch Golf Club</div>
+    <div class="tagline">A tradition unlike any other</div>
+  </div>
+
+  <div class="teams-row">
+    <div class="team-pill team-pill-a">
+      <div class="team-pill-label">Team A</div>
+      <div class="team-pill-name">The A Holes</div>
+    </div>
+    <div class="team-pill team-pill-b">
+      <div class="team-pill-label">Team B</div>
+      <div class="team-pill-name">The Bum Bandits</div>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(&#39;info&#39;)">Info</button>
+    <button class="tab-btn" onclick="switchTab(&#39;draw&#39;)">Draw</button>
+    <button class="tab-btn" onclick="switchTab(&#39;transport&#39;)">Travel</button>
+    <button class="tab-btn" onclick="switchTab(&#39;aholes&#39;)">A Holes</button>
+    <button class="tab-btn" onclick="switchTab(&#39;bandits&#39;)">Bum Bandits</button>
+  </div>
+
+  <!-- TAB 1: INFO -->
+  <div id="tab-info" class="tab-content active">
+
+    <div class="format-banner">
+      <div class="format-rule">
+        <div class="format-day-label">Day 1 · Thursday</div>
+        <div class="format-title">Scramble Drive</div>
+        <div class="format-sub">Four-Ball Better Ball Match Play</div>
+        <div class="format-detail">Both partners tee off. The best drive is selected — both players then play their own ball from that spot for the remainder of the hole. The better net score of the pair contests each hole. Holes are won, halved, or lost. Strokes received per stroke index at 85% of course handicap.</div>
+      </div>
+      <div class="format-rule">
+        <div class="format-day-label">Day 2 · Friday</div>
+        <div class="format-title">Normal Play</div>
+        <div class="format-sub">Four-Ball Better Ball Match Play</div>
+        <div class="format-detail">Each player plays their own ball throughout. The better net score of the two partners contests each hole against the opposing pair. Holes are won, halved, or lost. Strokes received per stroke index at 85% of course handicap.</div>
+      </div>
+    </div>
+
+    <div class="hcp-section">
+      <div class="section-label">Playing Handicaps · 85% of Course Handicap</div>
+      <div class="hcp-grid">
+        <div>
+          <div class="hcp-row"><span class="hcp-name">Juan Klopper</span><span class="hcp-vals"><span class="hcp-ch">22</span><span class="hcp-arrow">→</span><span class="hcp-play">19</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">David Harrison</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">9</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Rob Arnold</span><span class="hcp-vals"><span class="hcp-ch">5</span><span class="hcp-arrow">→</span><span class="hcp-play">4</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Ross Andrews</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">9</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Byron Roos</span><span class="hcp-vals"><span class="hcp-ch">20</span><span class="hcp-arrow">→</span><span class="hcp-play">17</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Jean-Pierre Du Toit</span><span class="hcp-vals"><span class="hcp-ch">18</span><span class="hcp-arrow">→</span><span class="hcp-play">15</span></span></div>
+        </div>
+        <div>
+          <div class="hcp-row"><span class="hcp-name">James Leach</span><span class="hcp-vals"><span class="hcp-ch">2</span><span class="hcp-arrow">→</span><span class="hcp-play">2</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Nic Dunn</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">9</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Shaheed Mohamed</span><span class="hcp-vals"><span class="hcp-ch">20</span><span class="hcp-arrow">→</span><span class="hcp-play">17</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Mike Du Toit</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">9</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Jason Airey</span><span class="hcp-vals"><span class="hcp-ch">9</span><span class="hcp-arrow">→</span><span class="hcp-play">8</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Charles Garner</span><span class="hcp-vals"><span class="hcp-ch">8</span><span class="hcp-arrow">→</span><span class="hcp-play">7</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="si-section">
+      <div class="section-label">Course · Par 72 · Stroke Index</div>
+      <table class="si-table">
+        <thead><tr>
+          <td class="si-label"></td>
+          <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td>
+          <td class="si-sep">OUT</td>
+        </tr></thead>
+        <tbody>
+          <tr class="par-row"><td class="si-label">Par</td><td>4</td><td>4</td><td>4</td><td>4</td><td>5</td><td>4</td><td>3</td><td>5</td><td>3</td><td class="si-sep">36</td></tr>
+          <tr class="si-row"><td class="si-label">SI</td><td>3</td><td>9</td><td>7</td><td>5</td><td>11</td><td>1</td><td>17</td><td>15</td><td>13</td><td class="si-sep"></td></tr>
+        </tbody>
+      </table>
+      <div style="height:10px;"></div>
+      <table class="si-table">
+        <thead><tr>
+          <td class="si-label"></td>
+          <td>10</td><td>11</td><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td>
+          <td class="si-sep">IN</td>
+        </tr></thead>
+        <tbody>
+          <tr class="par-row"><td class="si-label">Par</td><td>4</td><td>4</td><td>4</td><td>5</td><td>3</td><td>5</td><td>3</td><td>4</td><td>4</td><td class="si-sep">36</td></tr>
+          <tr class="si-row"><td class="si-label">SI</td><td>6</td><td>10</td><td>18</td><td>16</td><td>12</td><td>8</td><td>2</td><td>14</td><td>4</td><td class="si-sep"></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-note">
+      <div class="footer-text">For committee approval · Playing handicaps at 85% of course handicap · As at 17 April 2026</div>
+    </div>
+
+  </div>
+
+  <!-- TAB 2: DRAW -->
+  <div id="tab-draw" class="tab-content">
+
+    <!-- DAY 1 -->
+    <div class="day-section">
+      <div class="day-header">
+        <div class="day-line"></div>
+        <div class="day-text">Thursday · 30 April 2026</div>
+        <div class="day-format-tag tag-scramble">Scramble Drive</div>
+        <div class="day-line"></div>
+      </div>
+
+      <div class="tee-block">
+        <div class="tee-header">
+          <div class="tee-time-badge"><div class="tee-time-text">10:03</div></div>
+          <div class="tee-divider-line"></div>
+        </div>
+        <div class="four-ball">
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Juan Klopper<span class="phcp">(19)</span><span class="amp">&amp;</span>David Harrison<span class="phcp">(9)</span></div></div>
+          <div class="vs-row"><span class="vs-text">vs</span></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">James Leach<span class="phcp">(2)</span><span class="amp">&amp;</span>Shaheed Mohamed<span class="phcp">(17)</span></div></div>
+        </div>
+      </div>
+
+      <div class="tee-block">
+        <div class="tee-header">
+          <div class="tee-time-badge"><div class="tee-time-text">10:12</div></div>
+          <div class="tee-divider-line"></div>
+        </div>
+        <div class="four-ball">
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Rob Arnold<span class="phcp">(4)</span><span class="amp">&amp;</span>Byron Roos<span class="phcp">(17)</span></div></div>
+          <div class="vs-row"><span class="vs-text">vs</span></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Nic Dunn<span class="phcp">(9)</span><span class="amp">&amp;</span>Mike Du Toit<span class="phcp">(9)</span></div></div>
+        </div>
+      </div>
+
+      <div class="tee-block">
+        <div class="tee-header">
+          <div class="tee-time-badge"><div class="tee-time-text">10:21</div></div>
+          <div class="tee-divider-line"></div>
+        </div>
+        <div class="four-ball">
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Charles Garner<span class="phcp">(7)</span><span class="amp">&amp;</span>Jean-Pierre Du Toit<span class="phcp">(15)</span></div></div>
+          <div class="vs-row"><span class="vs-text">vs</span></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Jason Airey<span class="phcp">(8)</span><span class="amp">&amp;</span>Ross Andrews<span class="phcp">(9)</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- DAY 2 -->
+    <div class="day-section">
+      <div class="day-header">
+        <div class="day-line"></div>
+        <div class="day-text">Friday · 1 May 2026</div>
+        <div class="day-format-tag tag-normal">Normal Play</div>
+        <div class="day-line"></div>
+      </div>
+
+      <div class="tee-block">
+        <div class="tee-header">
+          <div class="tee-time-badge"><div class="tee-time-text">09:36</div></div>
+          <div class="tee-divider-line"></div>
+        </div>
+        <div class="four-ball">
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Jean-Pierre Du Toit<span class="phcp">(15)</span><span class="amp">&amp;</span>Rob Arnold<span class="phcp">(4)</span></div></div>
+          <div class="vs-row"><span class="vs-text">vs</span></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Ross Andrews<span class="phcp">(9)</span><span class="amp">&amp;</span>Mike Du Toit<span class="phcp">(9)</span></div></div>
+        </div>
+      </div>
+
+      <div class="tee-block">
+        <div class="tee-header">
+          <div class="tee-time-badge"><div class="tee-time-text">09:45</div></div>
+          <div class="tee-divider-line"></div>
+        </div>
+        <div class="four-ball">
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">David Harrison<span class="phcp">(9)</span><span class="amp">&amp;</span>Charles Garner<span class="phcp">(7)</span></div></div>
+          <div class="vs-row"><span class="vs-text">vs</span></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Nic Dunn<span class="phcp">(9)</span><span class="amp">&amp;</span>James Leach<span class="phcp">(2)</span></div></div>
+        </div>
+      </div>
+
+      <div class="tee-block">
+        <div class="tee-header">
+          <div class="tee-time-badge"><div class="tee-time-text">09:54</div></div>
+          <div class="tee-divider-line"></div>
+        </div>
+        <div class="four-ball">
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Byron Roos<span class="phcp">(17)</span><span class="amp">&amp;</span>Juan Klopper<span class="phcp">(19)</span></div></div>
+          <div class="vs-row"><span class="vs-text">vs</span></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Shaheed Mohamed<span class="phcp">(17)</span><span class="amp">&amp;</span>Jason Airey<span class="phcp">(8)</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <div class="footer-text">For committee approval · Playing handicaps at 85% of course handicap · As at 17 April 2026</div>
+    </div>
+
+  </div>
+
+  <!-- TAB 3: TRANSPORT -->
+  <div id="tab-transport" class="tab-content">
+
+    <div class="transport-section">
+      <div class="section-label">Transport · Who's Driving With Who</div>
+
+      <div class="car-block">
+        <div class="car-header">
+          <div class="car-driver">Charles Garner</div>
+          <div class="car-tag">Driver</div>
+        </div>
+        <div class="car-passengers">
+          <div class="passenger-row"><div class="pass-dot"></div>Byron Roos</div>
+          <div class="passenger-row"><div class="pass-dot"></div>James Leach</div>
+          <div class="passenger-row"><div class="pass-dot"></div>David Harrison</div>
+        </div>
+      </div>
+
+      <div class="car-block">
+        <div class="car-header">
+          <div class="car-driver">Rob Arnold</div>
+          <div class="car-tag">Driver</div>
+        </div>
+        <div class="car-passengers">
+          <div class="passenger-row"><div class="pass-dot"></div>Juan Klopper</div>
+        </div>
+      </div>
+
+      <div class="car-block">
+        <div class="car-header">
+          <div class="car-driver">Ross Andrews</div>
+          <div class="car-tag">Driver</div>
+        </div>
+        <div class="car-passengers">
+          <div class="passenger-row tbd-row">Travelling alone</div>
+        </div>
+      </div>
+
+      <div class="car-block tbd-block">
+        <div class="car-header">
+          <div class="car-driver unconf-driver">Nic Dunn · Mike Du Toit · Jean-Pierre Du Toit · Jason Airey · Shaheed Mohamed</div>
+        </div>
+        <div class="car-passengers">
+          <div class="passenger-row tbd-row">Transport not yet confirmed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="transport-section">
+      <div class="section-label">Accommodation · Stellenbosch</div>
+
+      <div class="property-card">
+        <div class="property-header">
+          <div class="property-name">Pool Villa Stellenbosch CapeTown</div>
+          <div class="property-rating">★ 4.87 <span class="property-reviews">(104)</span></div>
+        </div>
+        <div class="property-meta">Cape Winelands District Municipality · Airbnb</div>
+        <div class="property-tags">
+          <span class="prop-tag">Pool</span>
+          <span class="prop-tag">Self-catering</span>
+          <span class="prop-tag">30 min from CT Airport</span>
+          <span class="prop-tag warn-tag">No Uber/Bolt on estate</span>
+        </div>
+        <div class="nav-buttons">
+          <a class="nav-btn waze-btn" href="https://waze.com/ul?q=Pool+Villa+Stellenbosch&amp;navigate=yes" target="_blank">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.54 6.63C19.08 3.24 15.67 1 12 1 7.03 1 3 5.03 3 10c0 2.08.68 4.01 1.84 5.57L3.5 19.5l4.07-1.07A9.01 9.01 0 0 0 12 19c4.97 0 9-4.03 9-9 0-.84-.11-1.65-.32-2.43l-.14.06zM12 17c-1.36 0-2.63-.37-3.72-1.02l-.26-.16-2.74.72.73-2.68-.17-.27A6.97 6.97 0 0 1 5 10c0-3.86 3.14-7 7-7 3.86 0 7 3.14 7 7s-3.14 7-7 7zm3.5-5.25c-.19-.1-1.14-.56-1.32-.63-.18-.06-.3-.1-.43.1-.13.19-.5.63-.61.76-.11.13-.23.14-.42.05-.19-.1-.81-.3-1.54-.96-.57-.51-.95-1.14-1.06-1.33-.11-.19-.01-.3.08-.39.09-.09.19-.23.29-.34.1-.12.13-.19.19-.32.06-.13.03-.24-.02-.34-.05-.1-.43-1.03-.59-1.41-.15-.37-.31-.32-.43-.32-.11 0-.24-.01-.37-.01s-.34.05-.51.24c-.18.19-.68.67-.68 1.62s.7 1.88.79 2.01c.1.13 1.37 2.09 3.32 2.93.46.2.83.32 1.11.41.47.15.89.13 1.23.08.37-.06 1.14-.47 1.3-.92.16-.45.16-.84.11-.92-.05-.09-.18-.14-.37-.23z"></path></svg>
+            Waze
+          </a>
+          <a class="nav-btn gmaps-btn" href="https://maps.google.com/?q=Pool+Villa+Stellenbosch+Cape+Winelands" target="_blank">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
+            Google Maps
+          </a>
+        </div>
+      </div>
+
+      <div class="accom-grid">
+        <div class="accom-col">
+          <div class="accom-heading">Confirmed</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">1</span>Juan Klopper</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">2</span>Rob Arnold</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">3</span>James Leach</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">4</span>David Harrison</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">5</span>Nic Dunn</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">6</span>Charles Garner</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">7</span>Ross Andrews</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">8</span>Byron Roos</div>
+          <div class="accom-row confirmed-row"><span class="accom-num">9</span>Jean-Pierre Du Toit</div>
+        </div>
+        <div class="accom-col">
+          <div class="accom-heading">TBD</div>
+          <div class="accom-row tbd-accom-row">Mike Du Toit</div>
+          <div class="accom-row tbd-accom-row">Jason Airey</div>
+          <div class="accom-row tbd-accom-row">Shaheed Mohamed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <div class="footer-text">Transport based on WhatsApp poll · 30 March 2026 · Accommodation as confirmed</div>
+    </div>
+
+  </div>
+
+  <!-- TAB 4: BIOS -->
+  <!-- TAB 4: A HOLES BIOS -->
+  <div id="tab-aholes" class="tab-content">
+    <div class="bios-header">
+      <div class="section-label">SFGC Tour · Unofficial &amp; Slightly Dangerous</div>
+    </div>
+    <div class="bio-team-header bio-team-a">
+      <span class="bio-team-label">The A Holes</span>
+    </div>
+    <div class="bio-list">
+
+      <div class="bio-card">
+        <div class="bio-avatar av-gold">JK</div>
+        <div class="bio-body">
+          <div class="bio-name">Juan Klopper</div>
+          <div class="bio-title">The Wildcard</div>
+          <div class="bio-text">Holds the highest handicap in the group — and earns every stroke of it. Makes a 3-wood off the deck look like a 300-yard EA Sports highlight. Somehow cannot replicate this off the tee box. At all. Can card a brilliant round or completely unravel before the turn. Beware. On any given day, either the story of the weekend or the reason someone loses a bet. Nobody knows which Juan is showing up. Including Juan.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-gold">JL</div>
+        <div class="bio-body">
+          <div class="bio-name">James Leach</div>
+          <div class="bio-title">The Purist</div>
+          <div class="bio-text">A 2 handicap with 2-handicap opinions about everything. The most vocal golf theologian in the group — has a view on every ruling, every pin position, and every perceived breach of etiquette. Despises LIV Golf with the energy of a man personally wronged by it. If you mention Saudi money near the first tee, bring a hard hat.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-gold">DH</div>
+        <div class="bio-body">
+          <div class="bio-name">David "Hollywood Harry" Harrison</div>
+          <div class="bio-title">The Window Finder</div>
+          <div class="bio-text">An 11 handicap with an almost supernatural ability to escape trouble. Has never found a ball behind a tree that couldn't find a window. The shot probably shouldn't come off. It usually does. Wildcard energy — could play a brilliant back nine or manufacture the most creative route around the course you have ever witnessed.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-gold">RoA</div>
+        <div class="bio-body">
+          <div class="bio-name">Ross Andrews</div>
+          <div class="bio-title">The Silent Storm</div>
+          <div class="bio-text">Four kids. This tour is what keeps him sane. Kenyan, with a swing that belongs on an 18-year-old Tiger Woods highlight reel — smooth, effortless, and deeply unfair. The calmest demeanour in the group right up until he gets on a run. Then watch out. He is scoring low and saying nothing about it.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-gold">BR</div>
+        <div class="bio-body">
+          <div class="bio-name">Byron Roos</div>
+          <div class="bio-title">The Commissioner</div>
+          <div class="bio-text">A 20 handicap running the show with the authority of a scratch golfer. Founder, organiser, judge, jury, and executioner. Removed someone from the Tour group mid-conversation. Claims it was necessary. The evicted party may disagree. Runs the chat like a benevolent dictatorship. Voting is a formality. Byron already knows the outcome.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-gold">JP</div>
+        <div class="bio-body">
+          <div class="bio-name">Jean-Pierre Du Toit</div>
+          <div class="bio-title">The Quiet Assassin</div>
+          <div class="bio-text">Playing off 18, so the strokes are generous and the damage is real. Too busy for the WhatsApp group — archived the chat before it had finished loading. Secretly a LIV sympathiser — won't start the conversation, but won't end it either. Suddenly winning on Sunday and nobody knows how. Brought his brother Mike along, which is either family loyalty or a very deliberate strategic move.</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="footer-note">
+      <div class="footer-text">Bios are entirely unofficial · No players were harmed in the writing of this tab</div>
+    </div>
+  </div>
+
+  <!-- TAB 5: BUM BANDITS BIOS -->
+  <div id="tab-bandits" class="tab-content">
+    <div class="bios-header">
+      <div class="section-label">SFGC Tour · Unofficial &amp; Slightly Dangerous</div>
+    </div>
+    <div class="bio-team-header bio-team-b">
+      <span class="bio-team-label">The Bum Bandits</span>
+    </div>
+    <div class="bio-list">
+
+      <div class="bio-card">
+        <div class="bio-avatar av-teal">RA</div>
+        <div class="bio-body">
+          <div class="bio-name">Rob Arnold</div>
+          <div class="bio-title">The People's Champion</div>
+          <div class="bio-text">The sharpest commentator in the group and universally adored. Off a 5, good enough to back it up. Actually attended the SA LIV tournament — filed no complaints. Has a gift for saying exactly the right thing at exactly the right moment. The tour runs better when Rob is in a good mood, and Rob is almost always in a good mood.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-teal">ND</div>
+        <div class="bio-body">
+          <div class="bio-name">Nic Dunn</div>
+          <div class="bio-title">The Mayor</div>
+          <div class="bio-text">The friendliest person on the tour by a considerable margin. An 11 handicap who plays it straight — on the course and off it. So committed to the weekend he booked his own second villa. Nobody asked. Nobody had to. That's just Nic. The social glue that stops the whole thing from becoming a logistics disaster.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-teal">CG</div>
+        <div class="bio-body">
+          <div class="bio-name">Charles Garner</div>
+          <div class="bio-title">The Camo Cowboy</div>
+          <div class="bio-text">Deep South American, transplanted to SA 12 years ago after falling for a South African girl — best decision he ever made, second only to the camo. Grand Pappy RIP passed down the love of LIV, the Yeehaw energy, and the lifestyle. Loud about all of it. Not remotely sorry. Knows exactly how to drive a cart and have a good time. Dangerous in a scramble. Yeehaw.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-teal">SM</div>
+        <div class="bio-body">
+          <div class="bio-name">Shaheed Mohamed</div>
+          <div class="bio-title">The Fund Manager</div>
+          <div class="bio-text">Fifteen years at Allan Gray managing everyone's hard-earned investments. Now launching his own Multi Manager fund — and he will absolutely try to sell you into it before you reach the 3rd hole. A 20 handicap with the calm composure of a man who has watched markets crash and recovered without blinking. Treat any investment conversation like a par 5 — take your time, don't rush, and make sure you read the prospectus.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-teal">JA</div>
+        <div class="bio-body">
+          <div class="bio-name">Jason Airey</div>
+          <div class="bio-title">The Competitor</div>
+          <div class="bio-text">Off a 9 and not afraid to use it. Recently welcomed a new baby — life is easy for Jason. Presumably less so for his wife. Close friends with Jean-Pierre and Charles, which means he arrived informed, motivated, and possibly running on very little sleep. Super competitive — tracks every stroke, every Nassau, every edge. The friendliness is real, but so is the scorecard. Don't mistake the smile for softness.</div>
+        </div>
+      </div>
+
+      <div class="bio-card">
+        <div class="bio-avatar av-teal">MD</div>
+        <div class="bio-body">
+          <div class="bio-name">Mike Du Toit</div>
+          <div class="bio-title">The Hazard</div>
+          <div class="bio-text">Jean-Pierre's brother, off 11. On the course: a classified hazard — unpredictable, unavoidable, and somehow always in your line. The kind of player whose ball finds the most inconvenient spot on the hole. Off the course, presumably delightful. The Du Toit package deal. The tour accepts the terms.</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="footer-note">
+      <div class="footer-text">Bios are entirely unofficial · No players were harmed in the writing of this tab</div>
+    </div>
+  </div>
+
+  <div class="gold-bar"></div>
+</div>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.remove('active'); });
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+
+
+</body></html>
