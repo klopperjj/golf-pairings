@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0058)file:///C:/Users/jklopper/Downloads/tee-times-card_16.html -->
+<!-- saved from url=(0058)file:///C:/Users/jklopper/Downloads/tee-times-card_18.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -55,6 +55,12 @@
   .format-detail { font-size: 10px; color: rgba(245,240,232,0.45); font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.5; margin-top: 6px; text-align: left; }
 
   /* Handicap table */
+  .rules-section { padding: 14px 28px 16px; border-bottom: 1px solid rgba(245,240,232,0.1); }
+  .rule-block { padding: 8px 12px; background: rgba(0,0,0,0.15); border-radius: 3px; margin-bottom: 6px; border-left: 2px solid rgba(201,168,76,0.3); }
+  .rule-block:last-child { margin-bottom: 0; }
+  .rule-block-warn { border-left-color: rgba(201,168,76,0.7); background: rgba(201,168,76,0.06); }
+  .rule-title { font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; color: #c9a84c; margin-bottom: 4px; }
+  .rule-text { font-size: 11px; color: rgba(245,240,232,0.55); font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.55; }
   .hcp-section { padding: 16px 28px; border-bottom: 1px solid rgba(245,240,232,0.1); }
   .section-label { font-size: 8.5px; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; color: rgba(201,168,76,0.55); margin-bottom: 10px; text-align: center; }
   .hcp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
@@ -67,6 +73,9 @@
   .hcp-total-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0 2px; border-top: 1px solid rgba(201,168,76,0.25); margin-top: 3px; }
   .hcp-total-label { font-size: 9px; color: rgba(201,168,76,0.55); font-family: 'Helvetica Neue', Arial, sans-serif; letter-spacing: 1.5px; text-transform: uppercase; }
   .hcp-total-val { font-size: 14px; color: #c9a84c; font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: bold; }
+  .hcp-ch-total-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0 1px; border-top: 1px solid rgba(245,240,232,0.1); margin-top: 3px; }
+  .hcp-ch-total-label { font-size: 9px; color: rgba(245,240,232,0.25); font-family: 'Helvetica Neue', Arial, sans-serif; letter-spacing: 1px; text-transform: uppercase; font-style: italic; }
+  .hcp-ch-total-val { font-size: 11px; color: rgba(245,240,232,0.25); font-family: 'Helvetica Neue', Arial, sans-serif; }
 
   /* Stroke index */
   .si-section { padding: 14px 28px 16px; }
@@ -197,6 +206,7 @@
   <!-- TAB BAR -->
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab(&#39;info&#39;)">Info</button>
+    <button class="tab-btn" onclick="switchTab(&#39;rules&#39;)">Rules</button>
     <button class="tab-btn" onclick="switchTab(&#39;draw&#39;)">Draw</button>
     <button class="tab-btn" onclick="switchTab(&#39;transport&#39;)">Travel &amp; Accom</button>
     <button class="tab-btn" onclick="switchTab(&#39;aholes&#39;)">A Holes</button>
@@ -211,7 +221,7 @@
         <div class="format-day-label">Day 1 · Thursday</div>
         <div class="format-title">Scramble Drive</div>
         <div class="format-sub">Four-Ball Better Ball Match Play</div>
-        <div class="format-detail">Both partners tee off. The best drive is selected — both players then play their own ball from that spot for the remainder of the hole. The better net score of the pair contests each hole. Holes are won, halved, or lost. Strokes received per stroke index at 85% of course handicap.</div>
+        <div class="format-detail">Both partners tee off on par 4s and par 5s — the best drive is selected and both play their own ball from that spot. Par 3s are played normally. The better net score of the pair contests each hole. Holes are won, halved, or lost. Strokes received per stroke index at 85% of course handicap.</div>
       </div>
       <div class="format-rule">
         <div class="format-day-label">Day 2 · Friday</div>
@@ -222,17 +232,18 @@
     </div>
 
     <div class="hcp-section">
-      <div class="section-label">Playing Handicaps · 85% of Course Handicap · A Holes adjusted −3 for balance</div>
+      <div class="section-label">Playing Handicaps · 85% of Course Handicap · All players</div>
       <div class="hcp-grid">
         <div>
           <div class="accom-heading" style="margin-bottom:6px;">The A Holes</div>
-          <div class="hcp-row"><span class="hcp-name">Juan Klopper</span><span class="hcp-vals"><span class="hcp-ch">22</span><span class="hcp-arrow">→</span><span class="hcp-play">16</span></span></div>
-          <div class="hcp-row"><span class="hcp-name">James Leach</span><span class="hcp-vals"><span class="hcp-ch">2</span><span class="hcp-arrow">→</span><span class="hcp-play">0</span></span></div>
-          <div class="hcp-row"><span class="hcp-name">David Harrison</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">6</span></span></div>
-          <div class="hcp-row"><span class="hcp-name">Ross Andrews</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">6</span></span></div>
-          <div class="hcp-row"><span class="hcp-name">Byron Roos</span><span class="hcp-vals"><span class="hcp-ch">20</span><span class="hcp-arrow">→</span><span class="hcp-play">14</span></span></div>
-          <div class="hcp-row"><span class="hcp-name">Jean-Pierre Du Toit</span><span class="hcp-vals"><span class="hcp-ch">18</span><span class="hcp-arrow">→</span><span class="hcp-play">12</span></span></div>
-          <div class="hcp-total-row"><span class="hcp-total-label">Team total</span><span class="hcp-total-val">54</span></div>
+          <div class="hcp-row"><span class="hcp-name">Juan Klopper</span><span class="hcp-vals"><span class="hcp-ch">22</span><span class="hcp-arrow">→</span><span class="hcp-play">19</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">James Leach</span><span class="hcp-vals"><span class="hcp-ch">2</span><span class="hcp-arrow">→</span><span class="hcp-play">2</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">David Harrison</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">9</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Ross Andrews</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">9</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Byron Roos</span><span class="hcp-vals"><span class="hcp-ch">20</span><span class="hcp-arrow">→</span><span class="hcp-play">17</span></span></div>
+          <div class="hcp-row"><span class="hcp-name">Jean-Pierre Du Toit</span><span class="hcp-vals"><span class="hcp-ch">18</span><span class="hcp-arrow">→</span><span class="hcp-play">15</span></span></div>
+          <div class="hcp-ch-total-row"><span class="hcp-ch-total-label">CH total</span><span class="hcp-ch-total-val">84</span></div>
+          <div class="hcp-total-row"><span class="hcp-total-label">Playing total</span><span class="hcp-total-val">71</span></div>
         </div>
         <div>
           <div class="accom-heading" style="margin-bottom:6px;">The Bum Bandits</div>
@@ -241,8 +252,9 @@
           <div class="hcp-row"><span class="hcp-name">Charles Garner</span><span class="hcp-vals"><span class="hcp-ch">8</span><span class="hcp-arrow">→</span><span class="hcp-play">7</span></span></div>
           <div class="hcp-row"><span class="hcp-name">Shaheed Mohamed</span><span class="hcp-vals"><span class="hcp-ch">20</span><span class="hcp-arrow">→</span><span class="hcp-play">17</span></span></div>
           <div class="hcp-row"><span class="hcp-name">Jason Airey</span><span class="hcp-vals"><span class="hcp-ch">9</span><span class="hcp-arrow">→</span><span class="hcp-play">8</span></span></div>
-          <div class="hcp-row"><span class="hcp-name">Mike Du Toit</span><span class="hcp-vals"><span class="hcp-ch">11</span><span class="hcp-arrow">→</span><span class="hcp-play">9</span></span></div>
-          <div class="hcp-total-row"><span class="hcp-total-label">Team total</span><span class="hcp-total-val">54</span></div>
+          <div class="hcp-row"><span class="hcp-name">Mike Du Toit</span><span class="hcp-vals"><span class="hcp-ch">9</span><span class="hcp-arrow">→</span><span class="hcp-play">8</span></span></div>
+          <div class="hcp-ch-total-row"><span class="hcp-ch-total-label">CH total</span><span class="hcp-ch-total-val">62</span></div>
+          <div class="hcp-total-row"><span class="hcp-total-label">Playing total</span><span class="hcp-total-val">53</span></div>
         </div>
       </div>
     </div>
@@ -275,7 +287,7 @@
     </div>
 
     <div class="footer-note">
-      <div class="footer-text">A Holes adjusted -3 for balance · Bum Bandits at 85% of course handicap · As at 17 April 2026</div>
+      <div class="footer-text">Playing handicaps at 85% of course handicap · As at 17 April 2026 · As at 17 April 2026</div>
     </div>
 
   </div>
@@ -298,7 +310,7 @@
           <div class="tee-divider-line"></div>
         </div>
         <div class="four-ball">
-          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Juan Klopper<span class="phcp">(16)</span><span class="amp">&amp;</span>David Harrison<span class="phcp">(6)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Juan Klopper<span class="phcp">(19)</span><span class="amp">&amp;</span>David Harrison<span class="phcp">(9)</span></div></div>
           <div class="vs-row"><span class="vs-text">vs</span></div>
           <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Rob Arnold<span class="phcp">(4)</span><span class="amp">&amp;</span>Nic Dunn<span class="phcp">(9)</span></div></div>
         </div>
@@ -310,9 +322,9 @@
           <div class="tee-divider-line"></div>
         </div>
         <div class="four-ball">
-          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">James Leach<span class="phcp">(0)</span><span class="amp">&amp;</span>Byron Roos<span class="phcp">(14)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">James Leach<span class="phcp">(2)</span><span class="amp">&amp;</span>Byron Roos<span class="phcp">(17)</span></div></div>
           <div class="vs-row"><span class="vs-text">vs</span></div>
-          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Shaheed Mohamed<span class="phcp">(17)</span><span class="amp">&amp;</span>Mike Du Toit<span class="phcp">(9)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Shaheed Mohamed<span class="phcp">(17)</span><span class="amp">&amp;</span>Mike Du Toit<span class="phcp">(8)</span></div></div>
         </div>
       </div>
 
@@ -322,7 +334,7 @@
           <div class="tee-divider-line"></div>
         </div>
         <div class="four-ball">
-          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Jean-Pierre Du Toit<span class="phcp">(12)</span><span class="amp">&amp;</span>Ross Andrews<span class="phcp">(6)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Jean-Pierre Du Toit<span class="phcp">(15)</span><span class="amp">&amp;</span>Ross Andrews<span class="phcp">(9)</span></div></div>
           <div class="vs-row"><span class="vs-text">vs</span></div>
           <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Charles Garner<span class="phcp">(7)</span><span class="amp">&amp;</span>Jason Airey<span class="phcp">(8)</span></div></div>
         </div>
@@ -346,9 +358,9 @@
           <div class="tee-divider-line"></div>
         </div>
         <div class="four-ball">
-          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Jean-Pierre Du Toit<span class="phcp">(12)</span><span class="amp">&amp;</span>Byron Roos<span class="phcp">(14)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Jean-Pierre Du Toit<span class="phcp">(15)</span><span class="amp">&amp;</span>Byron Roos<span class="phcp">(17)</span></div></div>
           <div class="vs-row"><span class="vs-text">vs</span></div>
-          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Rob Arnold<span class="phcp">(4)</span><span class="amp">&amp;</span>Mike Du Toit<span class="phcp">(9)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Rob Arnold<span class="phcp">(4)</span><span class="amp">&amp;</span>Mike Du Toit<span class="phcp">(8)</span></div></div>
         </div>
       </div>
 
@@ -358,7 +370,7 @@
           <div class="tee-divider-line"></div>
         </div>
         <div class="four-ball">
-          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">David Harrison<span class="phcp">(6)</span><span class="amp">&amp;</span>James Leach<span class="phcp">(0)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">David Harrison<span class="phcp">(9)</span><span class="amp">&amp;</span>James Leach<span class="phcp">(2)</span></div></div>
           <div class="vs-row"><span class="vs-text">vs</span></div>
           <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Nic Dunn<span class="phcp">(9)</span><span class="amp">&amp;</span>Charles Garner<span class="phcp">(7)</span></div></div>
         </div>
@@ -370,7 +382,7 @@
           <div class="tee-divider-line"></div>
         </div>
         <div class="four-ball">
-          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Ross Andrews<span class="phcp">(6)</span><span class="amp">&amp;</span>Juan Klopper<span class="phcp">(16)</span></div></div>
+          <div class="team-row"><div class="team-badge badge-a">A Holes</div><div class="players">Ross Andrews<span class="phcp">(9)</span><span class="amp">&amp;</span>Juan Klopper<span class="phcp">(19)</span></div></div>
           <div class="vs-row"><span class="vs-text">vs</span></div>
           <div class="team-row"><div class="team-badge badge-b">Bum Bandits</div><div class="players">Shaheed Mohamed<span class="phcp">(17)</span><span class="amp">&amp;</span>Jason Airey<span class="phcp">(8)</span></div></div>
         </div>
@@ -378,7 +390,7 @@
     </div>
 
     <div class="footer-note">
-      <div class="footer-text">A Holes adjusted -3 for balance · Bum Bandits at 85% of course handicap · As at 17 April 2026</div>
+      <div class="footer-text">Playing handicaps at 85% of course handicap · As at 17 April 2026 · As at 17 April 2026</div>
     </div>
 
   </div>
@@ -628,6 +640,58 @@
     <div class="footer-note">
       <div class="footer-text">Bios are entirely unofficial · No players were harmed in the writing of this tab</div>
     </div>
+  </div>
+
+  <!-- TAB: RULES -->
+  <div id="tab-rules" class="tab-content">
+
+    <div class="rules-section">
+      <div class="section-label">Scramble Drive · Day 1 · Par 4s &amp; Par 5s</div>
+
+      <div class="rule-block">
+        <div class="rule-title">The tee shot</div>
+        <div class="rule-text">Both partners tee off on par 4s and par 5s. The best drive is selected by the partnership. The ball is marked and both players place their ball within one club length of that spot — no closer to the hole, same condition (rough stays rough).</div>
+      </div>
+
+      <div class="rule-block">
+        <div class="rule-title">Par 3s — normal play</div>
+        <div class="rule-text">Scramble Drive does not apply on par 3s. Each player plays their own tee shot and their own ball for the entire hole.</div>
+      </div>
+
+      <div class="rule-block">
+        <div class="rule-title">From the second shot onwards</div>
+        <div class="rule-text">Each player plays their own ball for the remainder of the hole. Normal rules apply. The better net score of the two partners counts for the hole.</div>
+      </div>
+
+      <div class="rule-block">
+        <div class="rule-title">Match play scoring</div>
+        <div class="rule-text">Holes are won, halved, or lost against the opposing pair's better net score. A player may concede a hole but cannot concede on behalf of their partner.</div>
+      </div>
+
+      <div class="rule-block rule-block-warn">
+        <div class="rule-title">Agree before you tee off</div>
+        <div class="rule-text">Either partner may select the drive — agree before both balls are lifted. If the chosen drive lands in the rough, both players play from the rough. If both drives are lost or OB, both players re-tee under penalty — there is no switching to the other drive after the fact.</div>
+      </div>
+    </div>
+
+    <div class="rules-section">
+      <div class="section-label">Local Rules · Both Days</div>
+
+      <div class="rule-block">
+        <div class="rule-title">Placing</div>
+        <div class="rule-text">Fairway only. Place within one club length of the ball's position — no closer to the hole. Rough, bunkers, and fringe play as they lie. No placing in hazards.</div>
+      </div>
+
+      <div class="rule-block">
+        <div class="rule-title">Gimmes</div>
+        <div class="rule-text">Within the leather of the putter. Must be conceded by the opponent — you cannot take your own gimme. If not conceded, the putt must be holed out.</div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <div class="footer-text">House rules agreed by the committee · Stellenbosch Invitational 2026</div>
+    </div>
+
   </div>
 
   <div class="gold-bar"></div>
