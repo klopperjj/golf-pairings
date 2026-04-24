@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0058)file:///C:/Users/jklopper/Downloads/tee-times-card_18.html -->
+<!-- saved from url=(0058)file:///C:/Users/jklopper/Downloads/tee-times-card_19.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -134,14 +134,21 @@
   .gmaps-btn { background: rgba(66,133,244,0.12); color: #4285f4; border: 1px solid rgba(66,133,244,0.3); }
   .airbnb-btn { background: rgba(255,90,95,0.12); color: #ff5a5f; border: 1px solid rgba(255,90,95,0.3); }
   .transport-section { padding: 16px 28px; }
+  .itinerary-day { padding: 4px 0 8px; }
+  .itin-day-label { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Arial, sans-serif; color: #c9a84c; margin-bottom: 10px; }
+  .itin-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+  .itin-time { font-size: 11px; color: rgba(201,168,76,0.7); font-family: 'Helvetica Neue', Arial, sans-serif; min-width: 36px; padding-top: 1px; }
+  .itin-detail { flex: 1; background: rgba(0,0,0,0.15); border-radius: 3px; padding: 6px 10px; border-left: 2px solid rgba(201,168,76,0.2); }
+  .itin-title { font-size: 12px; color: #f5f0e8; margin-bottom: 2px; }
+  .itin-sub { font-size: 10px; color: rgba(245,240,232,0.38); font-family: 'Helvetica Neue', Arial, sans-serif; font-style: italic; }
+  .itin-divider { height: 1px; background: rgba(245,240,232,0.08); margin: 8px 0 14px; }
   .car-block { background: rgba(0,0,0,0.18); border-radius: 3px; padding: 10px 14px; margin-bottom: 8px; }
   .car-block:last-child { margin-bottom: 0; }
   .tbd-block { background: rgba(0,0,0,0.1); border: 1px dashed rgba(245,240,232,0.1); }
   .car-header { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
   .car-driver { font-size: 13px; color: #f5f0e8; flex: 1; }
   .unconf-driver { font-size: 11px; color: rgba(245,240,232,0.35); }
-  .car-tag { font-size: 8.5px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 7px; border-radius: 10px; background: rgba(201,168,76,0.15); color: rgba(201,168,76,0.7); border: 1px solid rgba(201,168,76,0.3); white-space: nowrap; }
-  .passenger-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(245,240,232,0.6); font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 0; }
+  .car-tag { font-size: 8.5px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 7px; border-radius: 10px; background: rgba(201,168,76,0.15); color: rgba(201,168,76,0.7); border: 1px solid rgba(201,168,76,0.3); white-space: nowrap; }  .passenger-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(245,240,232,0.6); font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 0; }
   .pass-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(201,168,76,0.4); flex-shrink: 0; }
   .tbd-row { color: rgba(245,240,232,0.25); font-style: italic; font-size: 11px; padding-left: 2px; }
 
@@ -205,16 +212,16 @@
 
   <!-- TAB BAR -->
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab(&#39;info&#39;)">Info</button>
+    <button class="tab-btn" onclick="switchTab(&#39;info&#39;)">Info</button>
     <button class="tab-btn" onclick="switchTab(&#39;rules&#39;)">Rules</button>
     <button class="tab-btn" onclick="switchTab(&#39;draw&#39;)">Draw</button>
-    <button class="tab-btn" onclick="switchTab(&#39;transport&#39;)">Travel &amp; Accom</button>
+    <button class="tab-btn active" onclick="switchTab(&#39;transport&#39;)">Travel &amp; Accom</button>
     <button class="tab-btn" onclick="switchTab(&#39;aholes&#39;)">A Holes</button>
     <button class="tab-btn" onclick="switchTab(&#39;bandits&#39;)">Bum Bandits</button>
   </div>
 
   <!-- TAB 1: INFO -->
-  <div id="tab-info" class="tab-content active">
+  <div id="tab-info" class="tab-content">
 
     <div class="format-banner">
       <div class="format-rule">
@@ -396,22 +403,10 @@
   </div>
 
   <!-- TAB 3: TRANSPORT -->
-  <div id="tab-transport" class="tab-content">
+  <div id="tab-transport" class="tab-content active">
 
     <div class="transport-section">
       <div class="section-label">Transport · Who's Driving With Who</div>
-
-      <div class="car-block">
-        <div class="car-header">
-          <div class="car-driver">Charles Garner</div>
-          <div class="car-tag">Driver</div>
-        </div>
-        <div class="car-passengers">
-          <div class="passenger-row"><div class="pass-dot"></div>Byron Roos</div>
-          <div class="passenger-row"><div class="pass-dot"></div>James Leach</div>
-          <div class="passenger-row"><div class="pass-dot"></div>David Harrison</div>
-        </div>
-      </div>
 
       <div class="car-block">
         <div class="car-header">
@@ -420,25 +415,182 @@
         </div>
         <div class="car-passengers">
           <div class="passenger-row"><div class="pass-dot"></div>Juan Klopper</div>
+          <div class="passenger-row"><div class="pass-dot"></div>Byron Roos</div>
         </div>
       </div>
 
       <div class="car-block">
         <div class="car-header">
-          <div class="car-driver">Ross Andrews</div>
+          <div class="car-driver">Charles Garner</div>
           <div class="car-tag">Driver</div>
+        </div>
+        <div class="car-passengers">
+          <div class="passenger-row"><div class="pass-dot"></div>David Harrison</div>
+          <div class="passenger-row"><div class="pass-dot"></div>James Leach</div>
+        </div>
+      </div>
+
+      <div class="car-block">
+        <div class="car-header">
+          <div class="car-driver">Jean-Pierre Du Toit</div>
+          <div class="car-tag">Driver</div>
+        </div>
+        <div class="car-passengers">
+          <div class="passenger-row"><div class="pass-dot"></div>Mike Du Toit</div>
+          <div class="passenger-row"><div class="pass-dot"></div>Jason Airey</div>
+        </div>
+      </div>
+
+      <div class="car-block">
+        <div class="car-header">
+          <div class="car-driver">Nic Dunn</div>
+          <div class="car-tag">Solo</div>
         </div>
         <div class="car-passengers">
           <div class="passenger-row tbd-row">Travelling alone</div>
         </div>
       </div>
 
-      <div class="car-block tbd-block">
+      <div class="car-block">
         <div class="car-header">
-          <div class="car-driver unconf-driver">Nic Dunn · Mike Du Toit · Jean-Pierre Du Toit · Jason Airey · Shaheed Mohamed</div>
+          <div class="car-driver">Ross Andrews</div>
+          <div class="car-tag">Solo</div>
         </div>
         <div class="car-passengers">
-          <div class="passenger-row tbd-row">Transport not yet confirmed</div>
+          <div class="passenger-row tbd-row">Travelling alone</div>
+        </div>
+      </div>
+
+      <div class="car-block">
+        <div class="car-header">
+          <div class="car-driver">Shaheed Mohamed</div>
+          <div class="car-tag">Solo</div>
+        </div>
+        <div class="car-passengers">
+          <div class="passenger-row tbd-row">Travelling alone</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="transport-section">
+      <div class="section-label">Weekend Itinerary</div>
+
+      <div class="itinerary-day">
+        <div class="itin-day-label">Thursday · 30 April</div>
+
+        <div class="itin-row">
+          <div class="itin-time">08:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">Depart Cape Town</div>
+            <div class="itin-sub">Approx 45 min drive to Stellenbosch</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">09:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">Arrive &amp; Check In · Villa</div>
+            <div class="itin-sub">Settle in, coffee &amp; light breakfast at the villa</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">10:03</div>
+          <div class="itin-detail">
+            <div class="itin-title">⛳ Day 1 · First Tee Off</div>
+            <div class="itin-sub">Scramble Drive · Four-Ball Better Ball Match Play</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">14:30</div>
+          <div class="itin-detail">
+            <div class="itin-title">🍺 19th Hole</div>
+            <div class="itin-sub">Drinks, scores &amp; debrief at the clubhouse</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">16:30</div>
+          <div class="itin-detail">
+            <div class="itin-title">🏊 Back to the Villa</div>
+            <div class="itin-sub">Pool, relax, recover</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">19:30</div>
+          <div class="itin-detail">
+            <div class="itin-title">🔥 Braai · Villa</div>
+            <div class="itin-sub">Dinner at the villa</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="itin-divider"></div>
+
+      <div class="itinerary-day">
+        <div class="itin-day-label">Friday · 1 May</div>
+
+        <div class="itin-row">
+          <div class="itin-time">07:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">☕ Breakfast · Villa</div>
+            <div class="itin-sub">Light breakfast before the round</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">08:30</div>
+          <div class="itin-detail">
+            <div class="itin-title">Depart for Stellenbosch Golf Club</div>
+            <div class="itin-sub">Warm up, practice green</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">09:36</div>
+          <div class="itin-detail">
+            <div class="itin-title">⛳ Day 2 · First Tee Off</div>
+            <div class="itin-sub">Normal Play · Four-Ball Better Ball Match Play</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">14:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">🏆 Prize Giving &amp; 19th Hole</div>
+            <div class="itin-sub">Results, awards &amp; celebratory drinks</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">16:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">🏊 Villa · Afternoon</div>
+            <div class="itin-sub">Pool, unwind, pack up</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">19:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">🍷 Dinner · Stellenbosch</div>
+            <div class="itin-sub">Restaurant dinner in town — TBC</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="itin-divider"></div>
+
+      <div class="itinerary-day">
+        <div class="itin-day-label">Saturday · 2 May</div>
+
+        <div class="itin-row">
+          <div class="itin-time">10:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">🥂 Brunch · Stellenbosch</div>
+            <div class="itin-sub">Final meal together before heading home — venue TBC</div>
+          </div>
+        </div>
+        <div class="itin-row">
+          <div class="itin-time">12:00</div>
+          <div class="itin-detail">
+            <div class="itin-title">🚗 Depart Stellenbosch</div>
+            <div class="itin-sub">Safe travels — see you next year</div>
+          </div>
         </div>
       </div>
     </div>
