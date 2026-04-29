@@ -31,12 +31,13 @@ export function betterBallPoints(player1Hcp, gross1, player2Hcp, gross2, holeNum
 }
 
 /**
- * For each hole 1-18, compute match play result for one four-ball group.
- * Returns array of { hole, teamAPts, teamBPts, winner: 'A'|'B'|'H' }
- * plus running hole totals { teamAHolesUp }
+ * For each hole 1-18, compute Four-Ball Better Ball Stableford for one group.
+ * Returns array of { hole, teamAPts, teamBPts } (better-ball pts per team per hole)
+ * plus cumulative totals { teamATotal, teamBTotal }
  */
-export function computeFourBallMatch(teamAScores, teamBScores, teamAHcps, teamBHcps) {
-  let teamAHolesUp = 0;
+export function computeFourBallStableford(teamAScores, teamBScores, teamAHcps, teamBHcps) {
+  let teamATotal = 0;
+  let teamBTotal = 0;
   const holes = [];
 
   for (let h = 1; h <= 18; h++) {
@@ -48,24 +49,26 @@ export function computeFourBallMatch(teamAScores, teamBScores, teamAHcps, teamBH
     const gross1B = teamBScores[0]?.[h];
     const gross2B = teamBScores[1]?.[h];
 
-    // Skip if neither team has entered scores yet
+    // Skip if no scores entered for this hole
     if (gross1A == null && gross2A == null && gross1B == null && gross2B == null) {
-      holes.push({ hole: h, teamAPts: null, teamBPts: null, winner: null });
+      holes.push({ hole: h, teamAPts: null, teamBPts: null });
       continue;
     }
 
     const teamAPts = betterBallPoints(hcp1A, gross1A, hcp2A, gross2A, h);
     const teamBPts = betterBallPoints(hcp1B, gross1B, hcp2B, gross2B, h);
 
-    let winner = 'H';
-    if (teamAPts > teamBPts) { winner = 'A'; teamAHolesUp++; }
-    else if (teamBPts > teamAPts) { winner = 'B'; teamAHolesUp--; }
+    teamATotal += teamAPts;
+    teamBTotal += teamBPts;
 
-    holes.push({ hole: h, teamAPts, teamBPts, winner, teamAHolesUp });
+    holes.push({ hole: h, teamAPts, teamBPts });
   }
 
-  return { holes, teamAHolesUp };
+  return { holes, teamATotal, teamBTotal };
 }
+
+// Keep old name as alias for any legacy callers
+export const computeFourBallMatch = computeFourBallStableford;
 
 /** Build a lookup: playerIndex → { [hole]: grossScore } from Supabase scores rows */
 export function buildScoreLookup(scoresRows) {

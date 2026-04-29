@@ -45,6 +45,6 @@ export const PAIRINGS = [
 
 // Day format labels
 export const DAY_FORMAT = {
-  1: 'Scramble Drive · Four-Ball Better Ball Match Play',
-  2: 'Normal Play · Four-Ball Better Ball Match Play',
+  1: 'Scramble Drive · Four-Ball Better Ball Stableford',
+  2: 'Normal Play · Four-Ball Better Ball Stableford',
 };

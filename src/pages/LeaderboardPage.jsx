@@ -1,34 +1,35 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { PAIRINGS, PLAYERS, DAY_FORMAT } from '../lib/gameData.js';
-import { computeFourBallMatch, buildScoreLookup } from '../lib/scoring.js';
+import { computeFourBallStableford, buildScoreLookup } from '../lib/scoring.js';
 
 const C = { green: '#1c4832', darkGreen: '#0e2d1c', gold: '#c9a84c', teal: '#4ecfb0', text: '#f5f0e8' };
 
-function HolesUpDisplay({ n }) {
-  if (n === 0) return <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 12 }}>A/S</span>;
-  const isA = n > 0;
+function PointsDisplay({ teamATotal, teamBTotal }) {
+  if (teamATotal === 0 && teamBTotal === 0) {
+    return <span style={{ color: 'rgba(245,240,232,0.25)', fontSize: 11 }}>No scores yet</span>;
+  }
+  if (teamATotal === teamBTotal) {
+    return <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 12 }}>Tied · {teamATotal} pts</span>;
+  }
+  const isA = teamATotal > teamBTotal;
   return (
     <span style={{ color: isA ? C.gold : C.teal, fontWeight: 'bold', fontSize: 13 }}>
-      {Math.abs(n)} up {isA ? '(A)' : '(B)'}
+      {isA ? `A Holes +${teamATotal - teamBTotal}` : `Bum Bandits +${teamBTotal - teamATotal}`}
     </span>
   );
 }
 
-function FourBallCard({ pairing, scoreLookup, day }) {
+function FourBallCard({ pairing, scoreLookup }) {
   const teamAHcps = pairing.teamA.map(i => PLAYERS[i].playingHcp);
   const teamBHcps = pairing.teamB.map(i => PLAYERS[i].playingHcp);
-  const teamAScores = pairing.teamA.map(i => {
-    const s = scoreLookup[i] || {};
-    return Object.fromEntries(Object.entries(s).map(([h, g]) => [h, g]));
-  });
-  const teamBScores = pairing.teamB.map(i => {
-    const s = scoreLookup[i] || {};
-    return Object.fromEntries(Object.entries(s).map(([h, g]) => [h, g]));
-  });
+  const teamAScores = pairing.teamA.map(i => scoreLookup[i] || {});
+  const teamBScores = pairing.teamB.map(i => scoreLookup[i] || {});
 
-  const { holes, teamAHolesUp } = computeFourBallMatch(teamAScores, teamBScores, teamAHcps, teamBHcps);
-  const holesPlayed = holes.filter(h => h.winner !== null).length;
+  const { holes, teamATotal, teamBTotal } = computeFourBallStableford(
+    teamAScores, teamBScores, teamAHcps, teamBHcps
+  );
+  const holesPlayed = holes.filter(h => h.teamAPts !== null).length;
   const teamANames = pairing.teamA.map(i => PLAYERS[i].name.split(' ')[0]);
   const teamBNames = pairing.teamB.map(i => PLAYERS[i].name.split(' ')[0]);
 
@@ -44,36 +45,55 @@ function FourBallCard({ pairing, scoreLookup, day }) {
         <div style={styles.teamSide}>
           <div style={styles.teamNameTag}><span style={styles.goldDot} />A Holes</div>
           {teamANames.map((n, i) => <div key={i} style={styles.playerSmall}>{n}</div>)}
+          <div style={{ ...styles.ptsTotalBadge, color: C.gold }}>{teamATotal} pts</div>
         </div>
 
         {/* Score */}
         <div style={styles.matchScore}>
-          <HolesUpDisplay n={teamAHolesUp} />
+          <PointsDisplay teamATotal={teamATotal} teamBTotal={teamBTotal} />
         </div>
 
         {/* Team B */}
         <div style={{ ...styles.teamSide, textAlign: 'right' }}>
           <div style={{ ...styles.teamNameTag, justifyContent: 'flex-end' }}><span style={styles.tealDot} />Bum Bandits</div>
           {teamBNames.map((n, i) => <div key={i} style={styles.playerSmall}>{n}</div>)}
+          <div style={{ ...styles.ptsTotalBadge, color: C.teal }}>{teamBTotal} pts</div>
         </div>
       </div>
 
-      {/* Hole-by-hole mini tracker */}
+      {/* Hole-by-hole points grid */}
       {holesPlayed > 0 && (
         <div style={styles.holeTrack}>
-          {holes.map(h => (
-            <div key={h.hole} style={{
-              ...styles.holeCell,
-              background: h.winner === 'A' ? 'rgba(201,168,76,0.25)' :
-                          h.winner === 'B' ? 'rgba(78,207,176,0.2)' :
-                          h.winner === 'H' ? 'rgba(245,240,232,0.08)' : 'rgba(0,0,0,0.2)',
-            }}>
-              <div style={styles.holeCellNum}>{h.hole}</div>
-              {h.winner && <div style={styles.holeCellWinner}>
-                {h.winner === 'H' ? '½' : h.winner}
-              </div>}
-            </div>
-          ))}
+          {holes.map(h => {
+            const played = h.teamAPts !== null;
+            const aWins = played && h.teamAPts > h.teamBPts;
+            const bWins = played && h.teamBPts > h.teamAPts;
+            return (
+              <div key={h.hole} style={{
+                ...styles.holeCell,
+                background: aWins ? 'rgba(201,168,76,0.25)' :
+                            bWins ? 'rgba(78,207,176,0.2)' :
+                            played ? 'rgba(245,240,232,0.08)' : 'rgba(0,0,0,0.2)',
+              }}>
+                <div style={styles.holeCellNum}>{h.hole}</div>
+                {played && (
+                  <div style={styles.holeCellPts}>
+                    <span style={{ color: C.gold }}>{h.teamAPts}</span>
+                    <span style={{ color: 'rgba(245,240,232,0.25)', fontSize: 6 }}>·</span>
+                    <span style={{ color: C.teal }}>{h.teamBPts}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pts legend */}
+      {holesPlayed > 0 && (
+        <div style={styles.ptLegend}>
+          <span style={{ color: C.gold }}>●</span> A Holes &nbsp;·&nbsp;
+          <span style={{ color: C.teal }}>●</span> Bum Bandits &nbsp;·&nbsp; better-ball pts per hole
         </div>
       )}
     </div>
@@ -115,18 +135,17 @@ export default function LeaderboardPage({ player }) {
     return () => supabase.removeChannel(channel);
   }, [roundDay]);
 
-  // Overall team tally: A Holes wins vs Bum Bandits wins
-  let teamATally = 0, teamBTally = 0, halfTally = 0;
+  // Overall tally: total better-ball Stableford points across all fourballs
+  let teamAGrandTotal = 0, teamBGrandTotal = 0;
   dayPairings.forEach(p => {
-    const { teamAHolesUp } = computeFourBallMatch(
+    const { teamATotal, teamBTotal } = computeFourBallStableford(
       p.teamA.map(i => scoreLookup[i] || {}),
       p.teamB.map(i => scoreLookup[i] || {}),
       p.teamA.map(i => PLAYERS[i].playingHcp),
       p.teamB.map(i => PLAYERS[i].playingHcp),
     );
-    if (teamAHolesUp > 0) teamATally++;
-    else if (teamAHolesUp < 0) teamBTally++;
-    else halfTally++;
+    teamAGrandTotal += teamATotal;
+    teamBGrandTotal += teamBTotal;
   });
 
   return (
@@ -154,26 +173,27 @@ export default function LeaderboardPage({ player }) {
           <div style={styles.formatTag}>{DAY_FORMAT[roundDay]}</div>
         </div>
 
-        {/* Overall tally */}
+        {/* Overall points tally */}
         <div style={styles.tallyRow}>
           <div style={styles.tallyTeam}>
             <div style={styles.tallyName}>The A Holes</div>
-            <div style={{ ...styles.tallyScore, color: C.gold }}>{teamATally}</div>
+            <div style={{ ...styles.tallyScore, color: C.gold }}>{teamAGrandTotal}</div>
           </div>
           <div style={styles.tallyMid}>
-            <div style={{ color: 'rgba(245,240,232,0.2)', fontSize: 11, marginBottom: 2 }}>fourball wins</div>
-            {halfTally > 0 && <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.2)' }}>{halfTally} all square</div>}
+            <div style={{ color: 'rgba(245,240,232,0.25)', fontSize: 10, marginBottom: 2 }}>total pts</div>
+            <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.2)' }}>better-ball</div>
+            <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.2)' }}>Stableford</div>
           </div>
           <div style={{ ...styles.tallyTeam, textAlign: 'right' }}>
             <div style={{ ...styles.tallyName, color: C.teal }}>Bum Bandits</div>
-            <div style={{ ...styles.tallyScore, color: C.teal }}>{teamBTally}</div>
+            <div style={{ ...styles.tallyScore, color: C.teal }}>{teamBGrandTotal}</div>
           </div>
         </div>
 
         {/* Four-ball cards */}
         <div style={{ padding: '0 0 8px' }}>
           {dayPairings.map((p, i) => (
-            <FourBallCard key={i} pairing={p} scoreLookup={scoreLookup} day={roundDay} />
+            <FourBallCard key={i} pairing={p} scoreLookup={scoreLookup} />
           ))}
         </div>
 
@@ -209,16 +229,18 @@ const styles = {
   fbHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid rgba(245,240,232,0.05)' },
   teeTimeBadge: { fontSize: 13, color: C.gold, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1 },
   holesPlayed: { fontSize: 10, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
-  matchupRow: { display: 'flex', alignItems: 'center', padding: '10px 12px' },
+  matchupRow: { display: 'flex', alignItems: 'flex-start', padding: '10px 12px' },
   teamSide: { flex: 1 },
   teamNameTag: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif', color: C.gold, marginBottom: 4 },
   goldDot: { width: 6, height: 6, borderRadius: '50%', background: C.gold, display: 'inline-block', flexShrink: 0 },
   tealDot: { width: 6, height: 6, borderRadius: '50%', background: C.teal, display: 'inline-block', flexShrink: 0 },
   playerSmall: { fontSize: 11, color: 'rgba(245,240,232,0.65)', fontFamily: 'Helvetica Neue,Arial,sans-serif', padding: '1px 0' },
-  matchScore: { textAlign: 'center', minWidth: 80, fontFamily: 'Helvetica Neue,Arial,sans-serif' },
-  holeTrack: { display: 'flex', flexWrap: 'wrap', gap: 2, padding: '6px 10px 10px' },
-  holeCell: { width: 22, height: 26, borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+  ptsTotalBadge: { fontSize: 13, fontWeight: 'bold', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 5 },
+  matchScore: { textAlign: 'center', minWidth: 70, fontFamily: 'Helvetica Neue,Arial,sans-serif', paddingTop: 4 },
+  holeTrack: { display: 'flex', flexWrap: 'wrap', gap: 2, padding: '6px 10px 4px' },
+  holeCell: { width: 24, height: 30, borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
   holeCellNum: { fontSize: 7, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
-  holeCellWinner: { fontSize: 9, fontWeight: 'bold', color: 'rgba(245,240,232,0.8)', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
+  holeCellPts: { display: 'flex', gap: 1, alignItems: 'center', fontSize: 8, fontWeight: 'bold', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
+  ptLegend: { fontSize: 9, color: 'rgba(245,240,232,0.25)', fontFamily: 'Helvetica Neue,Arial,sans-serif', textAlign: 'center', padding: '2px 10px 8px' },
   updateRow: { textAlign: 'center', padding: '6px 20px 12px', fontSize: 10, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
 };
