@@ -72,8 +72,7 @@ export default function ScorePage({ player, token, onLogout }) {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  function setScore(hole, playerIndex, value) {
-    const gross = parseInt(value) || null;
+  function setScore(hole, playerIndex, gross) {
     setHoleScores(prev => ({
       ...prev,
       [hole]: { ...(prev[hole] || {}), [playerIndex]: gross },
@@ -85,21 +84,14 @@ export default function ScorePage({ player, token, onLogout }) {
     setSaving(true);
     setSaveMsg('');
 
-    const scores = pairIndices
-      .map(idx => ({ playerIndex: idx, grossScore: holeScores[currentHole]?.[idx] }))
-      .filter(s => s.grossScore != null && s.grossScore > 0);
-
-    if (scores.length === 0) {
-      setSaveMsg('Enter at least one score first');
-      setSaving(false);
-      return;
-    }
-
     try {
       const res = await fetch('/api/scores/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ roundDay, holeNumber: currentHole, scores }),
+        body: JSON.stringify({ roundDay, holeNumber: currentHole, scores: pairIndices.map(idx => ({
+          playerIndex: idx,
+          grossScore: holeScores[currentHole]?.[idx] ?? PAR[currentHole],
+        })) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -183,30 +175,35 @@ export default function ScorePage({ player, token, onLogout }) {
         <div style={styles.section}>
           <div style={styles.sectionLabel}>Your Pair — Enter Scores</div>
           {pairPlayers.map(p => {
-            const gross = holeScores[currentHole]?.[p.index];
+            const gross = holeScores[currentHole]?.[p.index] ?? par;
+            const isDefault = holeScores[currentHole]?.[p.index] == null;
             const strokes = strokesOnHole(p.playingHcp, currentHole);
-            const pts = gross ? stablefordPoints(gross, p.playingHcp, currentHole) : null;
+            const pts = stablefordPoints(gross, p.playingHcp, currentHole);
+            const diff = gross - par;
+            const scoreName = diff <= -2 ? 'Eagle' : diff === -1 ? 'Birdie' : diff === 0 ? 'Par' : diff === 1 ? 'Bogey' : diff === 2 ? 'Double' : `+${diff}`;
+            const scoreColor = diff <= -1 ? '#6ad35d' : diff === 0 ? C.gold : diff === 1 ? 'rgba(245,240,232,0.6)' : 'rgba(220,100,100,0.85)';
             return (
-              <div key={p.index} style={styles.scoreRow}>
-                <div style={styles.scoreName}>
-                  {p.name}
+              <div key={p.index} style={{ ...styles.scoreRow, marginBottom: 14 }}>
+                <div>
+                  <div style={styles.scoreName}>{p.name}</div>
                   <span style={styles.strokeBadge}>+{strokes} stroke{strokes !== 1 ? 's' : ''}</span>
                 </div>
-                <div style={styles.scoreInputWrap}>
-                  <input
-                    type="number"
-                    min={1} max={15}
-                    value={gross || ''}
-                    onChange={e => setScore(currentHole, p.index, e.target.value)}
-                    style={styles.scoreInput}
-                    placeholder="—"
-                    inputMode="numeric"
-                  />
-                  {pts !== null && (
-                    <div style={{ ...styles.ptsTag, color: pts >= 3 ? '#6ad35d' : pts === 0 ? 'rgba(245,240,232,0.25)' : C.gold }}>
-                      {pts}pt{pts !== 1 ? 's' : ''}
-                    </div>
-                  )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                  <button
+                    style={styles.stepBtn}
+                    onClick={() => setScore(currentHole, p.index, Math.max(1, gross - 1))}
+                  >−</button>
+                  <div style={{ width: 56, textAlign: 'center' }}>
+                    <div style={{ fontSize: 26, color: isDefault ? 'rgba(201,168,76,0.45)' : scoreColor, fontFamily: "Georgia,'Times New Roman',serif", lineHeight: 1 }}>{gross}</div>
+                    <div style={{ fontSize: 9, fontFamily: 'Helvetica Neue,Arial,sans-serif', color: isDefault ? 'rgba(245,240,232,0.2)' : scoreColor, marginTop: 2, letterSpacing: 0.5 }}>{scoreName}</div>
+                  </div>
+                  <button
+                    style={styles.stepBtn}
+                    onClick={() => setScore(currentHole, p.index, Math.min(15, gross + 1))}
+                  >+</button>
+                  <div style={{ ...styles.ptsTag, color: pts >= 3 ? '#6ad35d' : pts === 0 ? 'rgba(245,240,232,0.2)' : C.gold, opacity: isDefault ? 0.4 : 1 }}>
+                    {pts}pt{pts !== 1 ? 's' : ''}
+                  </div>
                 </div>
               </div>
             );
@@ -299,8 +296,8 @@ const styles = {
   scoreName: { fontSize: 13, color: C.text, display: 'flex', alignItems: 'center', gap: 6 },
   strokeBadge: { fontSize: 9, fontFamily: 'Helvetica Neue,Arial,sans-serif', padding: '1px 5px', background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 8, color: 'rgba(201,168,76,0.7)' },
   scoreInputWrap: { display: 'flex', alignItems: 'center', gap: 8 },
-  scoreInput: { width: 56, height: 40, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 3, color: C.text, fontSize: 20, textAlign: 'center', fontFamily: "Georgia,'Times New Roman',serif", outline: 'none' },
-  ptsTag: { fontSize: 11, fontFamily: 'Helvetica Neue,Arial,sans-serif', color: C.gold, minWidth: 32, textAlign: 'right' },
+  stepBtn: { width: 40, height: 48, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 3, color: C.gold, fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1, userSelect: 'none' },
+  ptsTag: { fontSize: 11, fontFamily: 'Helvetica Neue,Arial,sans-serif', color: C.gold, minWidth: 36, textAlign: 'right' },
   saveBtn: { width: '100%', background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.5)', borderRadius: 3, color: C.gold, fontSize: 14, padding: 12, cursor: 'pointer', fontFamily: "Georgia,'Times New Roman',serif", letterSpacing: 1, marginTop: 4 },
   progressRow: { display: 'flex', flexWrap: 'wrap', gap: 4, padding: '10px 20px', justifyContent: 'center' },
   dot: { width: 14, height: 14, borderRadius: '50%', transition: 'background 0.2s' },
