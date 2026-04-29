@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!api/|draw\\.html|preview\\.png|assets/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
