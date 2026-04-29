@@ -1,0 +1,13 @@
+{
+  "name": "SFGC Invitational",
+  "short_name": "SFGC Inv",
+  "description": "Stellenbosch Golf Club Invitational 2026 — Bum Bandits vs A Holes",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e2d1c",
+  "theme_color": "#0e2d1c",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

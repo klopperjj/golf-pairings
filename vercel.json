@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/apple-touch-icon.png", "destination": "/api/apple-touch-icon" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
