@@ -332,13 +332,23 @@ export default function ScorePage({ player, token, onLogout }) {
           {holesComplete}/18 holes complete
         </div>
 
-        {/* ── Scorecard Approval ── */}
-        <div style={{ margin: '0 24px 24px', background: 'rgba(0,0,0,0.2)', borderRadius: 3, padding: '14px 16px', border: `1px solid ${fullyApproved ? 'rgba(106,211,93,0.3)' : 'rgba(201,168,76,0.15)'}` }}>
+        {/* ── Scorecard Approval — only after all 18 holes are entered ── */}
+        <div style={{ margin: '0 24px 24px', background: 'rgba(0,0,0,0.2)', borderRadius: 3, padding: '14px 16px', border: `1px solid ${fullyApproved ? 'rgba(106,211,93,0.3)' : holesComplete === 18 ? 'rgba(201,168,76,0.3)' : 'rgba(245,240,232,0.08)'}` }}>
           <div style={{ fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif', color: 'rgba(201,168,76,0.5)', marginBottom: 10 }}>
-            Scorecard Approval
+            End-of-Round Scorecard Approval
           </div>
 
-          {fullyApproved ? (
+          {holesComplete < 18 ? (
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
+              <div style={{ fontSize: 18, opacity: 0.4 }}>🔒</div>
+              <div style={{ fontSize: 12, color: 'rgba(245,240,232,0.4)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 6 }}>
+                Locked until all 18 holes are entered
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 4, fontStyle: 'italic' }}>
+                {holesComplete}/18 holes complete · {18 - holesComplete} to go
+              </div>
+            </div>
+          ) : fullyApproved ? (
             <div style={{ textAlign: 'center', padding: '6px 0' }}>
               <div style={{ fontSize: 20 }}>✅</div>
               <div style={{ fontSize: 13, color: '#6ad35d', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 4 }}>Scorecard finalised</div>
@@ -346,6 +356,10 @@ export default function ScorePage({ player, token, onLogout }) {
             </div>
           ) : (
             <>
+              <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(106,211,93,0.7)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginBottom: 10 }}>
+                ✓ Round complete — ready to certify
+              </div>
+
               {/* Team approval rows */}
               {[
                 { team: 'A', label: 'The A Holes', color: C.gold, players: pairing.teamA },
@@ -379,12 +393,12 @@ export default function ScorePage({ player, token, onLogout }) {
                   borderRadius: 3, color: '#6ad35d', fontSize: 13, padding: '10px 0',
                   cursor: 'pointer', fontFamily: "Georgia,'Times New Roman',serif", letterSpacing: 0.5,
                 }}>
-                  {approving ? 'Approving…' : '✓ Approve Scorecard'}
+                  {approving ? 'Approving…' : '✓ Approve Full Scorecard'}
                 </button>
               )}
 
               <div style={{ marginTop: 8, fontSize: 9, color: 'rgba(245,240,232,0.2)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontStyle: 'italic', textAlign: 'center' }}>
-                At least one player from each team must approve to finalise
+                One certification covers all 18 holes · at least one player from each team must approve
               </div>
             </>
           )}

@@ -81,6 +81,11 @@ export default function AdminPage({ player, token }) {
   const [resetMsg, setResetMsg] = useState('');
   const [hcpMsgs, setHcpMsgs] = useState({});       // { playerIndex: '✓ Saved' | '✗ ...' }
 
+  // ── PINs tab state ────────────────────────────────────────
+  const [pinEdits, setPinEdits] = useState({});       // { playerIndex: { mobile, newPin } }
+  const [pinSaving, setPinSaving] = useState(null);
+  const [pinMsgs, setPinMsgs] = useState({});         // { playerIndex: msg }
+
   // ── Load scores ───────────────────────────────────────────
   useEffect(() => { loadScores(); }, [roundDay]);
 
@@ -98,20 +103,23 @@ export default function AdminPage({ player, token }) {
     setScores(lookup);
   }
 
-  // ── Load players (handicaps tab) ──────────────────────────
+  // ── Load players (handicaps + PINs tabs) ──────────────────
   useEffect(() => {
     supabase
       .from('players')
-      .select('player_index, name, team, course_hcp, playing_hcp')
+      .select('player_index, name, team, course_hcp, playing_hcp, mobile')
       .order('player_index')
       .then(({ data }) => {
         if (!data) return;
         setDbPlayers(data);
         const edits = {};
+        const pinE = {};
         data.forEach(p => {
           edits[p.player_index] = { courseHcp: p.course_hcp, playingHcp: p.playing_hcp };
+          pinE[p.player_index] = { mobile: p.mobile || '', newPin: '' };
         });
         setHcpEdits(edits);
+        setPinEdits(pinE);
         // Infer current allowance from first player with course_hcp > 0
         const sample = data.find(p => p.course_hcp > 0);
         if (sample) {
@@ -120,6 +128,54 @@ export default function AdminPage({ player, token }) {
         }
       });
   }, []);
+
+  // ── PIN management ────────────────────────────────────────
+  async function callPinApi(playerIndex, body, successMsg) {
+    setPinSaving(playerIndex);
+    setPinMsgs(prev => ({ ...prev, [playerIndex]: '' }));
+    try {
+      const res = await fetch('/api/admin/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ playerIndex, ...body }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPinMsgs(prev => ({ ...prev, [playerIndex]: `✓ ${successMsg}` }));
+      // refresh local mobile from server
+      if (body.mobile) {
+        setDbPlayers(prev => prev.map(p => p.player_index === playerIndex ? { ...p, mobile: body.mobile } : p));
+      }
+      // Clear PIN input after successful set
+      if (body.newPin) {
+        setPinEdits(prev => ({ ...prev, [playerIndex]: { ...prev[playerIndex], newPin: '' } }));
+      }
+      setTimeout(() => setPinMsgs(prev => ({ ...prev, [playerIndex]: '' })), 2500);
+    } catch (err) {
+      setPinMsgs(prev => ({ ...prev, [playerIndex]: `✗ ${err.message}` }));
+    } finally {
+      setPinSaving(null);
+    }
+  }
+
+  function setPinForPlayer(playerIndex) {
+    const edit = pinEdits[playerIndex];
+    if (!edit?.newPin || !/^\d{4}$/.test(edit.newPin)) {
+      setPinMsgs(prev => ({ ...prev, [playerIndex]: '✗ PIN must be 4 digits' }));
+      return;
+    }
+    callPinApi(playerIndex, { newPin: edit.newPin }, `PIN set to ${edit.newPin}`);
+  }
+
+  function resetPinForPlayer(playerIndex) {
+    callPinApi(playerIndex, { newPin: '1234' }, 'Reset to 1234');
+  }
+
+  function saveMobileForPlayer(playerIndex) {
+    const edit = pinEdits[playerIndex];
+    if (!edit?.mobile) return;
+    callPinApi(playerIndex, { mobile: edit.mobile.trim() }, 'Mobile saved');
+  }
 
   // Recompute all playing_hcps when allowance changes
   function applyAllowance(pct) {
@@ -254,6 +310,7 @@ export default function AdminPage({ player, token }) {
           {[
             ['scores',    '⛳', 'Scores'],
             ['handicaps', '📋', 'Handicaps'],
+            ['pins',      '🔑', 'PINs'],
             ['reset',     '⚠️', 'Reset'],
           ].map(([key, icon, label]) => {
             const active = tab === key;
@@ -481,6 +538,92 @@ export default function AdminPage({ player, token }) {
               Playing HCP inputs highlighted in gold when unsaved changes are pending
             </div>
           </>
+        )}
+
+        {/* ══════════════ PINs TAB ══════════════ */}
+        {tab === 'pins' && (
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 3, padding: '12px 16px', marginBottom: 16, fontSize: 11, color: 'rgba(245,240,232,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1.5 }}>
+              <div style={{ color: C.gold, fontSize: 12, marginBottom: 4 }}>🔑 PIN & Mobile Management</div>
+              All players default to PIN <strong style={{ color: C.gold }}>1234</strong>. Set custom 4-digit PINs and WhatsApp them privately. Mobile numbers are how players sign in — keep them in <code style={{ color: C.gold }}>0821234567</code> format.
+            </div>
+
+            {dbPlayers.map(p => {
+              const edit = pinEdits[p.player_index] || { mobile: '', newPin: '' };
+              const teamColor = p.team === 'A' ? C.gold : C.teal;
+              const msg = pinMsgs[p.player_index];
+              const isSaving = pinSaving === p.player_index;
+              return (
+                <div key={p.player_index} style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(245,240,232,0.06)', borderRadius: 3, padding: '12px 14px', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: teamColor, flexShrink: 0 }} />
+                    <span style={{ fontSize: 14, color: C.text, flex: 1 }}>{p.name}</span>
+                    <span style={{ fontSize: 9, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1 }}>idx {p.player_index}</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'end' }}>
+                    {/* Mobile */}
+                    <div>
+                      <label style={{ fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(201,168,76,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', display: 'block', marginBottom: 4 }}>Mobile</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input
+                          type="tel"
+                          value={edit.mobile}
+                          onChange={e => setPinEdits(prev => ({ ...prev, [p.player_index]: { ...prev[p.player_index], mobile: e.target.value } }))}
+                          placeholder="0821234567"
+                          style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 3, color: C.text, fontSize: 13, padding: '7px 10px', fontFamily: 'Helvetica Neue,Arial,sans-serif', outline: 'none' }}
+                        />
+                        <button
+                          onClick={() => saveMobileForPlayer(p.player_index)}
+                          disabled={isSaving || edit.mobile === p.mobile}
+                          style={{ padding: '7px 10px', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 3, color: C.gold, fontSize: 11, cursor: edit.mobile === p.mobile ? 'default' : 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif', opacity: edit.mobile === p.mobile ? 0.4 : 1 }}>
+                          Save
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* PIN */}
+                    <div>
+                      <label style={{ fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(201,168,76,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', display: 'block', marginBottom: 4 }}>Set PIN</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input
+                          type="text"
+                          value={edit.newPin}
+                          onChange={e => setPinEdits(prev => ({ ...prev, [p.player_index]: { ...prev[p.player_index], newPin: e.target.value.replace(/\D/g, '').slice(0, 4) } }))}
+                          placeholder="4 digits"
+                          inputMode="numeric"
+                          maxLength={4}
+                          style={{ width: 80, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 3, color: C.text, fontSize: 14, padding: '7px 10px', fontFamily: 'Helvetica Neue,Arial,sans-serif', outline: 'none', textAlign: 'center', letterSpacing: '0.2em' }}
+                        />
+                        <button
+                          onClick={() => setPinForPlayer(p.player_index)}
+                          disabled={isSaving || edit.newPin.length !== 4}
+                          style={{ padding: '7px 10px', background: 'rgba(106,211,93,0.12)', border: '1px solid rgba(106,211,93,0.35)', borderRadius: 3, color: '#6ad35d', fontSize: 11, cursor: edit.newPin.length !== 4 ? 'default' : 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif', opacity: edit.newPin.length !== 4 ? 0.4 : 1 }}>
+                          Set
+                        </button>
+                        <button
+                          onClick={() => resetPinForPlayer(p.player_index)}
+                          disabled={isSaving}
+                          style={{ padding: '7px 10px', background: 'rgba(245,240,232,0.05)', border: '1px solid rgba(245,240,232,0.2)', borderRadius: 3, color: 'rgba(245,240,232,0.55)', fontSize: 11, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif', whiteSpace: 'nowrap' }}>
+                          ↺ 1234
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {msg && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: msg.startsWith('✓') ? '#6ad35d' : 'rgba(220,100,100,0.9)', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>
+                      {msg}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.15)', borderRadius: 3, fontSize: 10, color: 'rgba(245,240,232,0.4)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontStyle: 'italic', textAlign: 'center' }}>
+              Setting a new PIN clears the player's device binding so they can sign in fresh.
+            </div>
+          </div>
         )}
 
         {/* ══════════════ RESET TAB ══════════════ */}

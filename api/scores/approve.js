@@ -33,6 +33,32 @@ export default async function handler(req, res) {
 
     if (!myPairing) return res.status(403).json({ error: 'No pairing found' });
 
+    // Find all 4 players in this fourball
+    const { data: fourballRows } = await supabase
+      .from('pairings')
+      .select('player1_index, player2_index')
+      .eq('round_day', roundDay)
+      .eq('tee_time', myPairing.tee_time);
+
+    const fourballIndices = (fourballRows || []).flatMap(r => [r.player1_index, r.player2_index]);
+    if (fourballIndices.length !== 4) {
+      return res.status(500).json({ error: 'Fourball lookup failed' });
+    }
+
+    // Verify all 18 holes entered for all 4 players
+    const { data: scoreRows } = await supabase
+      .from('scores')
+      .select('player_index, hole_number')
+      .eq('round_day', roundDay)
+      .in('player_index', fourballIndices);
+
+    const expectedCount = 18 * 4;
+    if (!scoreRows || scoreRows.length < expectedCount) {
+      return res.status(400).json({
+        error: `Cannot approve: only ${scoreRows?.length ?? 0}/${expectedCount} scores entered. Complete all 18 holes for all 4 players first.`,
+      });
+    }
+
     // Insert approval (upsert so double-tapping is safe)
     const { error } = await supabase
       .from('approvals')
