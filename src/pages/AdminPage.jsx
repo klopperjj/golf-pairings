@@ -5,6 +5,44 @@ import { supabase } from '../lib/supabase.js';
 
 const C = { green: '#1c4832', darkGreen: '#0e2d1c', gold: '#c9a84c', teal: '#4ecfb0', text: '#f5f0e8' };
 
+function ResetBlock({ label, subtitle, day, confirmKey, setConfirm, onConfirm, resetting, danger }) {
+  const isConfirming = confirmKey === day;
+  const borderColor = danger ? 'rgba(220,60,60,0.4)' : 'rgba(220,60,60,0.25)';
+  const btnBg = isConfirming
+    ? (danger ? 'rgba(220,60,60,0.3)' : 'rgba(220,60,60,0.2)')
+    : 'rgba(220,60,60,0.08)';
+  const btnColor = isConfirming ? 'rgba(255,120,120,0.95)' : 'rgba(220,100,100,0.7)';
+  return (
+    <div style={{ background: C.green, border: `1px solid ${borderColor}`, borderRadius: 3, padding: '14px 16px', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 13, color: 'rgba(245,240,232,0.8)', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>{label}</div>
+          <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontStyle: 'italic', marginTop: 2 }}>{subtitle}</div>
+        </div>
+        <button
+          disabled={resetting}
+          onClick={() => {
+            if (!isConfirming) { setConfirm(day); }
+            else { onConfirm(); }
+          }}
+          style={{
+            padding: '9px 16px', borderRadius: 3, border: `1px solid ${borderColor}`,
+            background: btnBg, color: btnColor,
+            fontSize: 12, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif',
+            whiteSpace: 'nowrap', minWidth: 140, textAlign: 'center',
+          }}>
+          {resetting && isConfirming ? 'Resetting…' : isConfirming ? '⚠️ Tap again to confirm' : '🗑 Reset Scores'}
+        </button>
+      </div>
+      {isConfirming && (
+        <div style={{ marginTop: 10, fontSize: 10, color: 'rgba(220,100,100,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontStyle: 'italic' }}>
+          This will permanently delete all scores{day !== 'all' ? ` for Day ${day}` : ' for the entire tournament'} and all approvals. Tap the button again to confirm, or switch tabs to cancel.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function scoreName(diff) {
   if (diff <= -2) return 'Eagle';
   if (diff === -1) return 'Birdie';
@@ -34,8 +72,13 @@ export default function AdminPage({ player, token }) {
   // ── Handicaps tab state ───────────────────────────────────
   const [dbPlayers, setDbPlayers] = useState([]);
   const [allowance, setAllowance] = useState(85);
-  const [hcpEdits, setHcpEdits] = useState({});   // { playerIndex: { courseHcp, playingHcp } }
-  const [savingHcp, setSavingHcp] = useState(null); // playerIndex currently saving
+  const [hcpEdits, setHcpEdits] = useState({});
+  const [savingHcp, setSavingHcp] = useState(null);
+
+  // ── Reset tab state ───────────────────────────────────────
+  const [resetConfirm, setResetConfirm] = useState(null); // null | '1' | '2' | 'all'
+  const [resetting, setResetting] = useState(false);
+  const [resetMsg, setResetMsg] = useState('');
   const [hcpMsgs, setHcpMsgs] = useState({});       // { playerIndex: '✓ Saved' | '✗ ...' }
 
   // ── Load scores ───────────────────────────────────────────
@@ -132,6 +175,28 @@ export default function AdminPage({ player, token }) {
     }
   }
 
+  // ── Reset scoreboard ──────────────────────────────────────
+  async function doReset(roundDay) {
+    setResetting(true);
+    setResetMsg('');
+    try {
+      const res = await fetch('/api/admin/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ roundDay }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setResetMsg(`✓ ${data.message}`);
+      setResetConfirm(null);
+      if (roundDay === 'all' || roundDay === roundDay) loadScores();
+    } catch (err) {
+      setResetMsg(`✗ ${err.message}`);
+    } finally {
+      setResetting(false);
+    }
+  }
+
   // ── Score editing ─────────────────────────────────────────
   async function saveEdit() {
     if (!editing) return;
@@ -185,17 +250,29 @@ export default function AdminPage({ player, token }) {
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: 'rgba(0,0,0,0.2)', borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(201,168,76,0.2)' }}>
-          {[['scores', '⛳ Scores'], ['handicaps', '📋 Handicaps']].map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)} style={{
-              flex: 1, padding: '11px 8px', border: 'none', cursor: 'pointer',
-              background: tab === key ? 'rgba(201,168,76,0.15)' : 'transparent',
-              color: tab === key ? C.gold : 'rgba(245,240,232,0.4)',
-              fontSize: 12, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 0.5,
-              borderBottom: tab === key ? `2px solid ${C.gold}` : '2px solid transparent',
-              transition: 'all 0.15s',
-            }}>{label}</button>
-          ))}
+        <div style={{ display: 'flex', marginBottom: 20, background: 'rgba(0,0,0,0.25)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(201,168,76,0.25)' }}>
+          {[
+            ['scores',    '⛳', 'Scores'],
+            ['handicaps', '📋', 'Handicaps'],
+            ['reset',     '⚠️', 'Reset'],
+          ].map(([key, icon, label]) => {
+            const active = tab === key;
+            const isReset = key === 'reset';
+            return (
+              <button key={key} onClick={() => { setTab(key); setResetConfirm(null); setResetMsg(''); }} style={{
+                flex: 1, padding: '13px 6px', border: 'none', cursor: 'pointer',
+                background: active ? (isReset ? 'rgba(220,60,60,0.15)' : 'rgba(201,168,76,0.15)') : 'transparent',
+                color: active ? (isReset ? 'rgba(220,100,100,0.95)' : C.gold) : 'rgba(245,240,232,0.4)',
+                fontSize: 11, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 0.3,
+                borderBottom: active ? `2px solid ${isReset ? 'rgba(220,60,60,0.7)' : C.gold}` : '2px solid transparent',
+                borderRight: key !== 'reset' ? '1px solid rgba(201,168,76,0.1)' : 'none',
+                transition: 'all 0.15s', lineHeight: 1.3,
+              }}>
+                <div style={{ fontSize: 16, marginBottom: 2 }}>{icon}</div>
+                <div>{label}</div>
+              </button>
+            );
+          })}
         </div>
 
         {/* ══════════════ SCORES TAB ══════════════ */}
@@ -404,6 +481,60 @@ export default function AdminPage({ player, token }) {
               Playing HCP inputs highlighted in gold when unsaved changes are pending
             </div>
           </>
+        )}
+
+        {/* ══════════════ RESET TAB ══════════════ */}
+        {tab === 'reset' && (
+          <div style={{ maxWidth: 480, margin: '0 auto' }}>
+            {/* Warning banner */}
+            <div style={{ background: 'rgba(220,60,60,0.1)', border: '1px solid rgba(220,60,60,0.3)', borderRadius: 3, padding: '14px 16px', marginBottom: 20, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>⚠️</div>
+              <div style={{ color: 'rgba(220,100,100,0.9)', fontSize: 13, fontFamily: 'Helvetica Neue,Arial,sans-serif', marginBottom: 4 }}>Danger Zone</div>
+              <div style={{ color: 'rgba(245,240,232,0.4)', fontSize: 11, fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1.5, fontStyle: 'italic' }}>
+                Resetting scores permanently deletes all hole entries and approvals. This cannot be undone.
+              </div>
+            </div>
+
+            {/* Reset Day 1 */}
+            <ResetBlock
+              label="Day 1 · Thursday"
+              subtitle="Scramble Drive — Four-Ball Better Ball"
+              day="1"
+              confirmKey={resetConfirm}
+              setConfirm={setResetConfirm}
+              onConfirm={() => doReset(1)}
+              resetting={resetting}
+            />
+
+            {/* Reset Day 2 */}
+            <ResetBlock
+              label="Day 2 · Friday"
+              subtitle="Normal Play — Four-Ball Better Ball"
+              day="2"
+              confirmKey={resetConfirm}
+              setConfirm={setResetConfirm}
+              onConfirm={() => doReset(2)}
+              resetting={resetting}
+            />
+
+            {/* Reset All */}
+            <ResetBlock
+              label="Reset Entire Tournament"
+              subtitle="Clears all scores — both days"
+              day="all"
+              confirmKey={resetConfirm}
+              setConfirm={setResetConfirm}
+              onConfirm={() => doReset('all')}
+              resetting={resetting}
+              danger
+            />
+
+            {resetMsg && (
+              <div style={{ marginTop: 16, textAlign: 'center', fontSize: 13, fontFamily: 'Helvetica Neue,Arial,sans-serif', color: resetMsg.startsWith('✓') ? '#6ad35d' : 'rgba(220,100,100,0.9)', padding: '10px 16px', background: 'rgba(0,0,0,0.2)', borderRadius: 3 }}>
+                {resetMsg}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
