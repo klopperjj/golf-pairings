@@ -3,10 +3,11 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import LoginPage from './pages/LoginPage.jsx';
 import ScorePage from './pages/ScorePage.jsx';
 import LeaderboardPage from './pages/LeaderboardPage.jsx';
+import AdminPage from './pages/AdminPage.jsx';
 
 const C = { green: '#1c4832', darkGreen: '#0e2d1c', gold: '#c9a84c', teal: '#4ecfb0', text: '#f5f0e8' };
 
-function NavBar() {
+function NavBar({ isAdmin }) {
   const loc = useLocation();
   const links = [
     { to: '/', label: '📋 Draw', exact: true },
@@ -23,6 +24,11 @@ function NavBar() {
           </Link>
         );
       })}
+      {isAdmin && (
+        <Link to="/admin" style={{ ...navStyles.link, ...(loc.pathname === '/admin' ? navStyles.linkActive : {}), fontSize: 11 }}>
+          🔧
+        </Link>
+      )}
     </nav>
   );
 }
@@ -50,9 +56,11 @@ export default function App() {
     setToken(null);
   }
 
+  const isAdmin = player?.player_index === 0;
+
   return (
     <div style={{ paddingTop: 44 }}>
-      <NavBar />
+      <NavBar isAdmin={isAdmin} />
       <Routes>
         <Route path="/" element={<DrawRedirect />} />
         <Route
@@ -62,6 +70,12 @@ export default function App() {
             : <LoginPage onLogin={handleLogin} />}
         />
         <Route path="/leaderboard" element={<LeaderboardPage player={player} />} />
+        <Route
+          path="/admin"
+          element={player && token
+            ? <AdminPage player={player} token={token} />
+            : <LoginPage onLogin={handleLogin} />}
+        />
       </Routes>
     </div>
   );
