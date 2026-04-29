@@ -79,6 +79,18 @@ export default function ScorePage({ player, token, onLogout }) {
     }));
   }
 
+  function resetHole() {
+    setHoleScores(prev => {
+      const updated = { ...prev };
+      if (updated[currentHole]) {
+        const cleared = { ...updated[currentHole] };
+        pairIndices.forEach(idx => { delete cleared[idx]; });
+        updated[currentHole] = cleared;
+      }
+      return updated;
+    });
+  }
+
   async function saveHole() {
     if (!pairing) return;
     setSaving(true);
@@ -161,6 +173,46 @@ export default function ScorePage({ player, token, onLogout }) {
           </div>
         </div>
 
+        {/* Cumulative Stableford summary */}
+        {(() => {
+          const holes = Array.from({ length: 18 }, (_, i) => i + 1);
+          let pairPts = 0, oppPts = 0, holesPlayed = 0;
+          holes.forEach(h => {
+            const pairScores = pairIndices.map(idx => holeScores[h]?.[idx]).filter(g => g != null);
+            const oppScores  = oppIndices.map(idx => holeScores[h]?.[idx]).filter(g => g != null);
+            if (pairScores.length === 0 && oppScores.length === 0) return;
+            holesPlayed++;
+            const pairBest = Math.max(0, ...pairPlayers
+              .map(p => holeScores[h]?.[p.index] != null ? stablefordPoints(holeScores[h][p.index], p.playingHcp, h) : 0));
+            const oppBest  = Math.max(0, ...oppPlayers
+              .map(p => holeScores[h]?.[p.index] != null ? stablefordPoints(holeScores[h][p.index], p.playingHcp, h) : 0));
+            pairPts += pairBest;
+            oppPts  += oppBest;
+          });
+          if (holesPlayed === 0) return null;
+          const diff = pairPts - oppPts;
+          const [myLabel, myColor] = isTeamA ? ['A Holes', C.gold] : ['Bum Bandits', C.teal];
+          const [oppLabel, oppColor] = isTeamA ? ['Bum Bandits', C.teal] : ['A Holes', C.gold];
+          const statusText = diff === 0 ? 'All Square' : diff > 0 ? `${myLabel} +${diff}` : `${oppLabel} +${Math.abs(diff)}`;
+          const statusColor = diff === 0 ? 'rgba(245,240,232,0.45)' : diff > 0 ? myColor : oppColor;
+          return (
+            <div style={{ padding: '8px 20px', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid rgba(245,240,232,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: 10, color: myColor, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1, opacity: 0.7 }}>{myLabel}</div>
+                <div style={{ fontSize: 18, color: myColor, fontFamily: "Georgia,'Times New Roman',serif" }}>{pairPts}<span style={{ fontSize: 10, marginLeft: 2 }}>pts</span></div>
+              </div>
+              <div style={{ textAlign: 'center', flex: 1.2 }}>
+                <div style={{ fontSize: 8, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>{holesPlayed} holes</div>
+                <div style={{ fontSize: 11, color: statusColor, fontFamily: 'Helvetica Neue,Arial,sans-serif', fontWeight: 'bold' }}>{statusText}</div>
+              </div>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: 10, color: oppColor, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1, opacity: 0.7 }}>{oppLabel}</div>
+                <div style={{ fontSize: 18, color: oppColor, fontFamily: "Georgia,'Times New Roman',serif" }}>{oppPts}<span style={{ fontSize: 10, marginLeft: 2 }}>pts</span></div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Hole selector */}
         <div style={styles.holeNav}>
           <button style={styles.navBtn} onClick={() => setCurrentHole(h => Math.max(1, h - 1))} disabled={currentHole === 1}>‹</button>
@@ -234,11 +286,16 @@ export default function ScorePage({ player, token, onLogout }) {
           })}
         </div>
 
-        {/* Save button */}
+        {/* Save / Reset buttons */}
         <div style={{ padding: '0 24px 24px' }}>
-          <button onClick={saveHole} disabled={saving} style={styles.saveBtn}>
-            {saving ? 'Saving…' : `Save Hole ${currentHole}`}
-          </button>
+          <div style={{ display: 'flex', gap: 8, marginBottom: saveMsg ? 0 : 0 }}>
+            <button onClick={resetHole} style={styles.resetBtn} title="Reset scores for this hole back to par">
+              ↺ Reset
+            </button>
+            <button onClick={saveHole} disabled={saving} style={{ ...styles.saveBtn, flex: 1, marginTop: 0 }}>
+              {saving ? 'Saving…' : `Save Hole ${currentHole}`}
+            </button>
+          </div>
           {saveMsg && (
             <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, fontFamily: 'Helvetica Neue,Arial,sans-serif', color: saveMsg.startsWith('✓') ? '#6ad35d' : 'rgba(220,100,100,0.9)' }}>
               {saveMsg}
@@ -299,6 +356,7 @@ const styles = {
   stepBtn: { width: 40, height: 48, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 3, color: C.gold, fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1, userSelect: 'none' },
   ptsTag: { fontSize: 11, fontFamily: 'Helvetica Neue,Arial,sans-serif', color: C.gold, minWidth: 36, textAlign: 'right' },
   saveBtn: { width: '100%', background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.5)', borderRadius: 3, color: C.gold, fontSize: 14, padding: 12, cursor: 'pointer', fontFamily: "Georgia,'Times New Roman',serif", letterSpacing: 1, marginTop: 4 },
+  resetBtn: { background: 'rgba(245,240,232,0.05)', border: '1px solid rgba(245,240,232,0.15)', borderRadius: 3, color: 'rgba(245,240,232,0.4)', fontSize: 12, padding: '12px 14px', cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 4, whiteSpace: 'nowrap' },
   progressRow: { display: 'flex', flexWrap: 'wrap', gap: 4, padding: '10px 20px', justifyContent: 'center' },
   dot: { width: 14, height: 14, borderRadius: '50%', transition: 'background 0.2s' },
   logoutBtn: { background: 'transparent', border: 'none', color: 'rgba(245,240,232,0.22)', fontSize: 11, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1 },
