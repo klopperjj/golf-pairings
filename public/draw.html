@@ -186,6 +186,16 @@
   .fine-sep { flex: 1; height: 1px; background: rgba(245,240,232,0.07); min-width: 8px; max-width: 20px; }
   .fine-note { font-size: 9px; color: rgba(245,240,232,0.25); font-family: 'Helvetica Neue', Arial, sans-serif; font-style: italic; white-space: nowrap; }
   .fine-sip { font-size: 10px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 7px; border-radius: 10px; background: rgba(245,240,232,0.06); color: rgba(245,240,232,0.5); border: 1px solid rgba(245,240,232,0.12); white-space: nowrap; }
+
+  /* App navigation buttons */
+  .app-nav { display: flex; gap: 8px; padding: 12px 16px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(201,168,76,0.2); }
+  .app-nav-btn { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; padding: 10px 8px; border-radius: 3px; font-size: 11px; font-family: 'Helvetica Neue', Arial, sans-serif; text-decoration: none; font-weight: bold; letter-spacing: 0.8px; text-transform: uppercase; transition: background 0.2s, border-color 0.2s; }
+  .app-nav-score { background: rgba(201,168,76,0.12); color: #c9a84c; border: 1px solid rgba(201,168,76,0.4); }
+  .app-nav-score:hover { background: rgba(201,168,76,0.22); border-color: rgba(201,168,76,0.7); }
+  .app-nav-live { background: rgba(78,207,176,0.1); color: #4ecfb0; border: 1px solid rgba(78,207,176,0.35); }
+  .app-nav-live:hover { background: rgba(78,207,176,0.2); border-color: rgba(78,207,176,0.6); }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ecfb0; display: inline-block; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
   .fine-shot { font-size: 10px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 7px; border-radius: 10px; background: rgba(201,168,76,0.12); color: #c9a84c; border: 1px solid rgba(201,168,76,0.3); white-space: nowrap; font-weight: bold; }
   .fine-finish { font-size: 10px; font-family: 'Helvetica Neue', Arial, sans-serif; padding: 2px 7px; border-radius: 10px; background: rgba(220,60,60,0.12); color: rgba(220,100,100,0.9); border: 1px solid rgba(220,60,60,0.3); white-space: nowrap; font-weight: bold; }
   .fines-scale { margin-top: 16px; padding: 10px 14px; background: rgba(0,0,0,0.18); border-radius: 3px; display: flex; flex-direction: column; gap: 7px; }
@@ -227,6 +237,11 @@
 <body>
 <div class="card">
   <div class="gold-bar"></div>
+
+  <div class="app-nav">
+    <a href="/score" class="app-nav-btn app-nav-score">⛳ Enter Scores</a>
+    <a href="/leaderboard" class="app-nav-btn app-nav-live"><span class="live-dot"></span> Live Leaderboard</a>
+  </div>
 
   <div class="header">
     <svg class="flag-icon" width="28" height="28" viewBox="0 0 30 30">
@@ -401,7 +416,7 @@
         <div class="format-day-label">Day 1 · Thursday</div>
         <div class="format-title">Scramble Drive</div>
         <div class="format-sub">Four-Ball Better Ball Match Play</div>
-        <div class="format-detail">Both partners tee off on par 4s and par 5s — the best drive is selected and both play their own ball from that spot. Par 3s are played normally. The better net score of the pair contests each hole. Holes are won, halved, or lost. Strokes received per stroke index at 85% of course handicap.</div>
+        <div class="format-detail">Both partners tee off on par 4s and par 5s — the best drive is selected (no limit on how many times each partner's drive may be used) and both play their own ball from that spot. Par 3s are played normally. The better net score of the pair contests each hole. Holes are won, halved, or lost. Strokes received per stroke index at 85% of course handicap.</div>
       </div>
       <div class="format-rule">
         <div class="format-day-label">Day 2 · Friday</div>
@@ -978,7 +993,7 @@
 
       <div class="rule-block">
         <div class="rule-title">The tee shot</div>
-        <div class="rule-text">Both partners tee off on par 4s and par 5s. The best drive is selected by the partnership. The ball is marked and both players place their ball within one club length of that spot — no closer to the hole, same condition (rough stays rough).</div>
+        <div class="rule-text">Both partners tee off on par 4s and par 5s. The best drive is selected by the partnership — there is no limit on how many drives of each partner may be used during the round. The ball is marked and both players place their ball within one club length of that spot — no closer to the hole, same condition (rough stays rough).</div>
       </div>
 
       <div class="rule-block">
