@@ -2,5 +2,19 @@
   "rewrites": [
     { "source": "/apple-touch-icon.png", "destination": "/api/apple-touch-icon" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/draw.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate, s-maxage=0" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate, s-maxage=0" }
+      ]
+    }
   ]
 }
