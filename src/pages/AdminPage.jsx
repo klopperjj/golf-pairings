@@ -551,8 +551,7 @@ export default function AdminPage({ player, token }) {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 20 }}>
-              <button onClick={() => setEditing(e => ({ ...e, gross: Math.max(1, e.gross - 1) })}
-              } style={{ width: 48, height: 52, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 3, color: C.gold, fontSize: 26, cursor: 'pointer' }}>−</button>
+              <button onClick={() => setEditing(e => ({ ...e, gross: Math.max(1, e.gross - 1) }))} style={{ width: 48, height: 52, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 3, color: C.gold, fontSize: 26, cursor: 'pointer' }}>−</button>
               <div style={{ textAlign: 'center', minWidth: 60 }}>
                 <div style={{ fontSize: 38, color: scoreColor(editing.gross - PAR[editing.hole]), fontFamily: "Georgia,'Times New Roman',serif", lineHeight: 1 }}>{editing.gross}</div>
                 <div style={{ fontSize: 10, fontFamily: 'Helvetica Neue,Arial,sans-serif', color: scoreColor(editing.gross - PAR[editing.hole]), opacity: 0.8, marginTop: 3 }}>
