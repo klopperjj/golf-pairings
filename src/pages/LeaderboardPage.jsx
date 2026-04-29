@@ -78,13 +78,39 @@ function RankBadge({ rank }) {
   return <span style={styles.rankNum}>{rank}</span>;
 }
 
-function PairsList({ pairs }) {
-  if (!pairs.length || pairs.every(p => p.holes === 0)) {
-    return <div style={styles.emptyState}>No scores entered yet</div>;
-  }
+function DayTeamBanner({ day, aTotal, bTotal }) {
+  const diff = aTotal - bTotal;
+  const status = diff === 0
+    ? (aTotal === 0 ? 'No scores yet' : 'All Square')
+    : diff > 0 ? `A Holes lead +${diff}` : `Bum Bandits lead +${Math.abs(diff)}`;
+  const statusColor = diff === 0 ? 'rgba(245,240,232,0.4)' : diff > 0 ? C.gold : C.teal;
+  return (
+    <div style={styles.dayBanner}>
+      <div style={styles.dayBannerLabel}>Day {day} · Team Better-Ball Stableford</div>
+      <div style={styles.dayBannerRow}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 9, color: C.gold, letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>A Holes</div>
+          <div style={{ fontSize: 24, color: C.gold, fontWeight: 'bold', lineHeight: 1, marginTop: 2 }}>{aTotal}<span style={{ fontSize: 10, marginLeft: 3, fontWeight: 'normal', opacity: 0.6 }}>pts</span></div>
+        </div>
+        <div style={{ flex: 0, minWidth: 110, textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: statusColor, fontWeight: 'bold', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>{status}</div>
+        </div>
+        <div style={{ flex: 1, textAlign: 'right' }}>
+          <div style={{ fontSize: 9, color: C.teal, letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>Bum Bandits</div>
+          <div style={{ fontSize: 24, color: C.teal, fontWeight: 'bold', lineHeight: 1, marginTop: 2 }}>{bTotal}<span style={{ fontSize: 10, marginLeft: 3, fontWeight: 'normal', opacity: 0.6 }}>pts</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PairsList({ pairs, dayTeamA, dayTeamB, day }) {
   return (
     <div>
-      {pairs.map((p, i) => (
+      <DayTeamBanner day={day} aTotal={dayTeamA} bTotal={dayTeamB} />
+      {!pairs.length || pairs.every(p => p.holes === 0) ? (
+        <div style={styles.emptyState}>No pair scores entered yet</div>
+      ) : pairs.map((p, i) => (
         <div key={p.key} style={styles.rankRow}>
           <RankBadge rank={i + 1} />
           <div style={{ flex: 1, marginLeft: 10 }}>
@@ -237,8 +263,8 @@ export default function LeaderboardPage({ player }) {
 
         {/* TAB CONTENT */}
         <div style={{ padding: '4px 8px 12px' }}>
-          {view === 'pairs1' && <PairsList pairs={pairsRankingForDay(1, scoresByDay)} />}
-          {view === 'pairs2' && <PairsList pairs={pairsRankingForDay(2, scoresByDay)} />}
+          {view === 'pairs1' && <PairsList day={1} pairs={pairsRankingForDay(1, scoresByDay)} dayTeamA={aDay1} dayTeamB={bDay1} />}
+          {view === 'pairs2' && <PairsList day={2} pairs={pairsRankingForDay(2, scoresByDay)} dayTeamA={aDay2} dayTeamB={bDay2} />}
           {view === 'individuals2' && <IndividualsList players={individualsRankingForDay(2, scoresByDay)} />}
         </div>
 
@@ -279,6 +305,9 @@ const styles = {
   tabRow: { display: 'flex', gap: 0, padding: '10px 12px 6px', borderBottom: '1px solid rgba(245,240,232,0.05)' },
   tabBtn: { flex: 1, padding: '8px 4px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: 'rgba(245,240,232,0.4)', fontSize: 10, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 0.5 },
   tabBtnActive: { color: C.gold, borderBottom: '2px solid #c9a84c' },
+  dayBanner: { margin: '6px 8px 10px', padding: '12px 14px', background: 'rgba(0,0,0,0.28)', borderRadius: 3, border: '1px solid rgba(201,168,76,0.18)' },
+  dayBannerLabel: { fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(201,168,76,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', textAlign: 'center', marginBottom: 8 },
+  dayBannerRow: { display: 'flex', alignItems: 'center' },
   rankRow: { display: 'flex', alignItems: 'center', padding: '10px 14px', margin: '4px 8px', background: 'rgba(0,0,0,0.18)', borderRadius: 3, border: '1px solid rgba(245,240,232,0.05)' },
   medal: { fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0 },
   rankNum: { fontSize: 13, color: 'rgba(245,240,232,0.4)', width: 24, textAlign: 'center', flexShrink: 0, fontFamily: 'Helvetica Neue,Arial,sans-serif' },
