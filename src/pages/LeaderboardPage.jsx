@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase.js';
-import { PAIRINGS, PLAYERS, DAY_FORMAT } from '../lib/gameData.js';
-import { betterBallPoints, stablefordPoints, computeFourBallMatchPlay } from '../lib/scoring.js';
+import { PAIRINGS, PLAYERS, DAY_FORMAT, PAR, STROKE_INDEX } from '../lib/gameData.js';
+import { betterBallPoints, stablefordPoints, computeFourBallMatchPlay, strokesOnHole, netScore } from '../lib/scoring.js';
 
 const C = { green: '#1c4832', darkGreen: '#0e2d1c', gold: '#c9a84c', teal: '#4ecfb0', text: '#f5f0e8' };
 
@@ -273,6 +273,173 @@ function MatchPlayList({ scoresByDay }) {
   );
 }
 
+function ScorecardView({ player, scoresByDay }) {
+  const [selectedIdx, setSelectedIdx] = useState(player?.player_index ?? 0);
+  const [day, setDay] = useState(() => {
+    const today = new Date();
+    return today >= new Date('2026-05-01') ? 2 : 1;
+  });
+
+  const p = PLAYERS[selectedIdx];
+  const dayScores = scoresByDay[day]?.[selectedIdx] || {};
+  const teamColor = p.team === 'A' ? C.gold : C.teal;
+
+  // Compute per-hole metrics
+  const rows = Array.from({ length: 18 }, (_, i) => {
+    const h = i + 1;
+    const par = PAR[h];
+    const si = STROKE_INDEX[h];
+    const stk = strokesOnHole(p.playingHcp, h);
+    const gross = dayScores[h];
+    if (gross == null) return { h, par, si, stk, gross: null, net: null, pts: 0, diff: null };
+    const net = netScore(gross, p.playingHcp, h);
+    const pts = stablefordPoints(gross, p.playingHcp, h);
+    return { h, par, si, stk, gross, net, pts, diff: gross - par };
+  });
+
+  const front = rows.slice(0, 9);
+  const back = rows.slice(9, 18);
+  const sum = (rs, key) => rs.reduce((a, r) => a + (r[key] ?? 0), 0);
+  const sumIfPlayed = (rs, key) => rs.filter(r => r.gross != null).reduce((a, r) => a + r[key], 0);
+  const playedFront = front.filter(r => r.gross != null).length;
+  const playedBack = back.filter(r => r.gross != null).length;
+
+  function colorForDiff(diff) {
+    if (diff == null) return 'rgba(245,240,232,0.2)';
+    if (diff <= -1) return '#6ad35d';
+    if (diff === 0) return C.gold;
+    if (diff === 1) return 'rgba(245,240,232,0.6)';
+    return 'rgba(220,100,100,0.85)';
+  }
+
+  return (
+    <div>
+      {/* Player picker — by team */}
+      <div style={styles.scTeamGroup}>
+        <div style={{ ...styles.scTeamLabel, color: C.gold }}>A Holes</div>
+        <div style={styles.scPickerRow}>
+          {PLAYERS.filter(pl => pl.team === 'A').map(pl => (
+            <button key={pl.index} onClick={() => setSelectedIdx(pl.index)}
+              style={{ ...styles.scPill, ...(selectedIdx === pl.index ? { ...styles.scPillActive, borderColor: C.gold, color: C.gold } : {}) }}>
+              {pl.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={styles.scTeamGroup}>
+        <div style={{ ...styles.scTeamLabel, color: C.teal }}>Bum Bandits</div>
+        <div style={styles.scPickerRow}>
+          {PLAYERS.filter(pl => pl.team === 'B').map(pl => (
+            <button key={pl.index} onClick={() => setSelectedIdx(pl.index)}
+              style={{ ...styles.scPill, ...(selectedIdx === pl.index ? { ...styles.scPillActive, borderColor: C.teal, color: C.teal } : {}) }}>
+              {pl.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Day toggle */}
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', padding: '8px 12px 4px' }}>
+        {[1, 2].map(d => (
+          <button key={d} onClick={() => setDay(d)}
+            style={{
+              padding: '5px 16px', borderRadius: 2,
+              border: '1px solid rgba(201,168,76,0.3)',
+              background: day === d ? 'rgba(201,168,76,0.18)' : 'transparent',
+              color: day === d ? C.gold : 'rgba(245,240,232,0.45)',
+              fontSize: 11, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif',
+            }}>
+            Day {d} · {d === 1 ? 'Thu' : 'Fri'}
+          </button>
+        ))}
+      </div>
+
+      {/* Player header */}
+      <div style={styles.scPlayerHeader}>
+        <div>
+          <div style={{ fontSize: 16, color: C.text }}>{p.name}</div>
+          <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.4)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 2 }}>
+            <span style={{ color: teamColor }}>{p.team === 'A' ? 'The A Holes' : 'Bum Bandits'}</span>
+            <span> · Course HCP {p.courseHcp} · Playing {p.playingHcp}</span>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 22, color: teamColor, fontWeight: 'bold', lineHeight: 1 }}>
+            {sumIfPlayed(rows, 'pts')}
+            <span style={{ fontSize: 10, marginLeft: 3, fontWeight: 'normal', opacity: 0.6 }}>pts</span>
+          </div>
+          <div style={{ fontSize: 9, color: 'rgba(245,240,232,0.35)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 3 }}>
+            {playedFront + playedBack}/18 holes
+          </div>
+        </div>
+      </div>
+
+      {/* Scorecard table */}
+      <div style={{ padding: '8px 8px 4px' }}>
+        <table style={styles.scTable}>
+          <thead>
+            <tr style={styles.scHeadRow}>
+              <th style={styles.scTh}>H</th>
+              <th style={styles.scTh}>Par</th>
+              <th style={styles.scTh}>SI</th>
+              <th style={styles.scTh}>+</th>
+              <th style={{ ...styles.scTh, textAlign: 'right' }}>Gross</th>
+              <th style={{ ...styles.scTh, textAlign: 'right' }}>Net</th>
+              <th style={{ ...styles.scTh, textAlign: 'right' }}>Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {front.map(r => (
+              <tr key={r.h} style={styles.scTr}>
+                <td style={styles.scTd}>{r.h}</td>
+                <td style={styles.scTd}>{r.par}</td>
+                <td style={styles.scTd}>{r.si}</td>
+                <td style={styles.scTd}>{r.stk > 0 ? r.stk : ''}</td>
+                <td style={{ ...styles.scTd, textAlign: 'right', color: colorForDiff(r.diff), fontWeight: r.gross != null ? 'bold' : 'normal' }}>{r.gross ?? '–'}</td>
+                <td style={{ ...styles.scTd, textAlign: 'right', color: 'rgba(245,240,232,0.55)' }}>{r.net ?? '–'}</td>
+                <td style={{ ...styles.scTd, textAlign: 'right', color: r.pts >= 3 ? '#6ad35d' : r.pts === 0 && r.gross != null ? 'rgba(220,100,100,0.6)' : C.gold, fontWeight: 'bold' }}>{r.gross != null ? r.pts : ''}</td>
+              </tr>
+            ))}
+            <tr style={styles.scSumRow}>
+              <td style={styles.scTd} colSpan={4}>OUT</td>
+              <td style={{ ...styles.scTd, textAlign: 'right', color: C.gold }}>{playedFront > 0 ? sumIfPlayed(front, 'gross') : '–'}</td>
+              <td style={styles.scTd}></td>
+              <td style={{ ...styles.scTd, textAlign: 'right', color: C.gold, fontWeight: 'bold' }}>{sumIfPlayed(front, 'pts')}</td>
+            </tr>
+            {back.map(r => (
+              <tr key={r.h} style={styles.scTr}>
+                <td style={styles.scTd}>{r.h}</td>
+                <td style={styles.scTd}>{r.par}</td>
+                <td style={styles.scTd}>{r.si}</td>
+                <td style={styles.scTd}>{r.stk > 0 ? r.stk : ''}</td>
+                <td style={{ ...styles.scTd, textAlign: 'right', color: colorForDiff(r.diff), fontWeight: r.gross != null ? 'bold' : 'normal' }}>{r.gross ?? '–'}</td>
+                <td style={{ ...styles.scTd, textAlign: 'right', color: 'rgba(245,240,232,0.55)' }}>{r.net ?? '–'}</td>
+                <td style={{ ...styles.scTd, textAlign: 'right', color: r.pts >= 3 ? '#6ad35d' : r.pts === 0 && r.gross != null ? 'rgba(220,100,100,0.6)' : C.gold, fontWeight: 'bold' }}>{r.gross != null ? r.pts : ''}</td>
+              </tr>
+            ))}
+            <tr style={styles.scSumRow}>
+              <td style={styles.scTd} colSpan={4}>IN</td>
+              <td style={{ ...styles.scTd, textAlign: 'right', color: C.gold }}>{playedBack > 0 ? sumIfPlayed(back, 'gross') : '–'}</td>
+              <td style={styles.scTd}></td>
+              <td style={{ ...styles.scTd, textAlign: 'right', color: C.gold, fontWeight: 'bold' }}>{sumIfPlayed(back, 'pts')}</td>
+            </tr>
+            <tr style={styles.scTotalRow}>
+              <td style={styles.scTd} colSpan={4}>TOTAL</td>
+              <td style={{ ...styles.scTd, textAlign: 'right', color: C.text }}>{(playedFront + playedBack) > 0 ? sumIfPlayed(rows, 'gross') : '–'}</td>
+              <td style={styles.scTd}></td>
+              <td style={{ ...styles.scTd, textAlign: 'right', color: teamColor, fontWeight: 'bold' }}>{sumIfPlayed(rows, 'pts')}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ padding: '4px 12px 10px', fontSize: 9, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif', textAlign: 'center', fontStyle: 'italic' }}>
+        Gross = strokes taken · Net = gross − strokes received · Pts = Stableford (max(0, 2 + par − net))
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function LeaderboardPage({ player }) {
@@ -362,6 +529,7 @@ export default function LeaderboardPage({ player }) {
             { id: 'pairs2', label: 'Pairs · D2' },
             { id: 'matchplay', label: 'Match Play' },
             { id: 'individuals2', label: 'Indiv · D2' },
+            { id: 'cards', label: 'Cards' },
           ].map(t => (
             <button key={t.id} onClick={() => setView(t.id)}
               style={{ ...styles.tabBtn, ...(view === t.id ? styles.tabBtnActive : {}) }}>
@@ -376,6 +544,7 @@ export default function LeaderboardPage({ player }) {
           {view === 'pairs2' && <PairsList day={2} pairs={pairsRankingForDay(2, scoresByDay)} dayTeamA={aDay2} dayTeamB={bDay2} />}
           {view === 'matchplay' && <MatchPlayList scoresByDay={scoresByDay} />}
           {view === 'individuals2' && <IndividualsList players={individualsRankingForDay(2, scoresByDay)} />}
+          {view === 'cards' && <ScorecardView player={player} scoresByDay={scoresByDay} />}
         </div>
 
         {/* Day format reminder */}
@@ -384,6 +553,7 @@ export default function LeaderboardPage({ player }) {
           {view === 'pairs2' && DAY_FORMAT[2]}
           {view === 'matchplay' && 'Four-Ball Better-Ball Match Play · per fourball, both days'}
           {view === 'individuals2' && 'Individual Stableford · Day 2 only'}
+          {view === 'cards' && 'Full hole-by-hole scorecard · any player, either day'}
         </div>
 
         {/* Last update */}
@@ -427,6 +597,19 @@ const styles = {
   mpMatchup: { display: 'flex', alignItems: 'center', padding: '10px 12px' },
   mpHoleStrip: { display: 'flex', flexWrap: 'wrap', gap: 2, padding: '6px 8px 10px', borderTop: '1px solid rgba(245,240,232,0.04)' },
   mpHoleCell: { width: 22, height: 26, borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+  scTeamGroup: { padding: '4px 8px 0' },
+  scTeamLabel: { fontSize: 8, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginBottom: 4, opacity: 0.7 },
+  scPickerRow: { display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 },
+  scPill: { padding: '4px 10px', fontSize: 11, borderRadius: 3, border: '1px solid rgba(245,240,232,0.15)', background: 'rgba(0,0,0,0.18)', color: 'rgba(245,240,232,0.55)', cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
+  scPillActive: { background: 'rgba(0,0,0,0.35)', fontWeight: 'bold' },
+  scPlayerHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', margin: '6px 8px 4px', background: 'rgba(0,0,0,0.22)', borderRadius: 3, border: '1px solid rgba(201,168,76,0.15)' },
+  scTable: { width: '100%', borderCollapse: 'collapse', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
+  scHeadRow: { background: 'rgba(0,0,0,0.3)' },
+  scTh: { fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(201,168,76,0.65)', padding: '6px 4px', textAlign: 'left', borderBottom: '1px solid rgba(201,168,76,0.2)' },
+  scTr: { borderBottom: '1px solid rgba(245,240,232,0.04)' },
+  scSumRow: { background: 'rgba(0,0,0,0.18)', fontSize: 11, fontWeight: 'bold', borderTop: '1px solid rgba(201,168,76,0.18)', borderBottom: '1px solid rgba(201,168,76,0.18)' },
+  scTotalRow: { background: 'rgba(201,168,76,0.08)', fontSize: 12, fontWeight: 'bold', borderTop: '2px solid rgba(201,168,76,0.4)' },
+  scTd: { padding: '6px 4px', fontSize: 11, color: 'rgba(245,240,232,0.7)' },
   medal: { fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0 },
   rankNum: { fontSize: 13, color: 'rgba(245,240,232,0.4)', width: 24, textAlign: 'center', flexShrink: 0, fontFamily: 'Helvetica Neue,Arial,sans-serif' },
   ptsBig: { fontSize: 22, fontWeight: 'bold', fontFamily: "Georgia,'Times New Roman',serif", lineHeight: 1 },
