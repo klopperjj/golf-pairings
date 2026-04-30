@@ -70,6 +70,62 @@ export function computeFourBallStableford(teamAScores, teamBScores, teamAHcps, t
 // Keep old name as alias for any legacy callers
 export const computeFourBallMatch = computeFourBallStableford;
 
+/**
+ * Four-Ball Better-Ball Match Play within one fourball.
+ * Each hole, the pair with the higher better-ball Stableford pts wins the hole.
+ * Equal = halved.
+ *
+ * Returns { holes: [{ hole, teamAPts, teamBPts, winner: 'A'|'B'|'H'|null, teamAHolesUp }],
+ *           teamAHolesUp, holesPlayed, holesRemaining, status }
+ *   status:
+ *     - 'in-progress'  → both teams still in it
+ *     - 'closed'       → match decided early (lead > holes remaining)
+ *     - 'final'        → 18 holes played
+ *     - 'dormie'       → lead == holes remaining (in progress, but losing team can only halve)
+ */
+export function computeFourBallMatchPlay(teamAScores, teamBScores, teamAHcps, teamBHcps) {
+  let teamAHolesUp = 0;
+  let holesPlayed = 0;
+  const holes = [];
+
+  for (let h = 1; h <= 18; h++) {
+    const [hcp1A, hcp2A] = teamAHcps;
+    const [hcp1B, hcp2B] = teamBHcps;
+
+    const g1A = teamAScores[0]?.[h];
+    const g2A = teamAScores[1]?.[h];
+    const g1B = teamBScores[0]?.[h];
+    const g2B = teamBScores[1]?.[h];
+
+    // Both teams need at least one score entered to score the hole
+    const aHasScore = g1A != null || g2A != null;
+    const bHasScore = g1B != null || g2B != null;
+    if (!aHasScore || !bHasScore) {
+      holes.push({ hole: h, teamAPts: null, teamBPts: null, winner: null, teamAHolesUp });
+      continue;
+    }
+
+    const teamAPts = betterBallPoints(hcp1A, g1A, hcp2A, g2A, h);
+    const teamBPts = betterBallPoints(hcp1B, g1B, hcp2B, g2B, h);
+
+    let winner = 'H';
+    if (teamAPts > teamBPts) { winner = 'A'; teamAHolesUp++; }
+    else if (teamBPts > teamAPts) { winner = 'B'; teamAHolesUp--; }
+
+    holesPlayed++;
+    holes.push({ hole: h, teamAPts, teamBPts, winner, teamAHolesUp });
+  }
+
+  const holesRemaining = 18 - holesPlayed;
+  const lead = Math.abs(teamAHolesUp);
+  let status = 'in-progress';
+  if (holesPlayed === 18) status = 'final';
+  else if (lead > holesRemaining) status = 'closed';
+  else if (lead === holesRemaining && lead > 0) status = 'dormie';
+
+  return { holes, teamAHolesUp, holesPlayed, holesRemaining, status };
+}
+
 /** Build a lookup: playerIndex → { [hole]: grossScore } from Supabase scores rows */
 export function buildScoreLookup(scoresRows) {
   const lookup = {};

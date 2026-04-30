@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { PAIRINGS, PLAYERS, DAY_FORMAT } from '../lib/gameData.js';
-import { betterBallPoints, stablefordPoints } from '../lib/scoring.js';
+import { betterBallPoints, stablefordPoints, computeFourBallMatchPlay } from '../lib/scoring.js';
 
 const C = { green: '#1c4832', darkGreen: '#0e2d1c', gold: '#c9a84c', teal: '#4ecfb0', text: '#f5f0e8' };
 
@@ -179,6 +179,100 @@ function IndividualsList({ players }) {
   );
 }
 
+function matchStatusText(holesUp, status, holesPlayed, holesRemaining) {
+  if (holesPlayed === 0) return 'Not started';
+  const lead = Math.abs(holesUp);
+  if (status === 'final') {
+    if (holesUp === 0) return 'Halved';
+    return `${lead} up · ${holesUp > 0 ? 'A Holes' : 'Bum Bandits'} won`;
+  }
+  if (status === 'closed') {
+    return `${lead}&${holesRemaining} · ${holesUp > 0 ? 'A Holes' : 'Bum Bandits'} won`;
+  }
+  if (status === 'dormie') {
+    return `Dormie ${lead} · ${holesUp > 0 ? 'A Holes' : 'Bum Bandits'}`;
+  }
+  if (holesUp === 0) return `All Square · thru ${holesPlayed}`;
+  return `${lead} up ${holesUp > 0 ? 'A Holes' : 'Bum Bandits'} · thru ${holesPlayed}`;
+}
+
+function MatchPlayCard({ pairing, scoreLookup }) {
+  const teamAHcps = pairing.teamA.map(i => PLAYERS[i].playingHcp);
+  const teamBHcps = pairing.teamB.map(i => PLAYERS[i].playingHcp);
+  const teamAScores = pairing.teamA.map(i => scoreLookup[i] || {});
+  const teamBScores = pairing.teamB.map(i => scoreLookup[i] || {});
+
+  const { holes, teamAHolesUp, holesPlayed, holesRemaining, status } =
+    computeFourBallMatchPlay(teamAScores, teamBScores, teamAHcps, teamBHcps);
+
+  const teamANames = pairing.teamA.map(i => PLAYERS[i].name.split(' ')[0]).join(' & ');
+  const teamBNames = pairing.teamB.map(i => PLAYERS[i].name.split(' ')[0]).join(' & ');
+
+  const leadColor = teamAHolesUp > 0 ? C.gold : teamAHolesUp < 0 ? C.teal : 'rgba(245,240,232,0.5)';
+  const statusText = matchStatusText(teamAHolesUp, status, holesPlayed, holesRemaining);
+
+  return (
+    <div style={styles.mpCard}>
+      <div style={styles.mpHeader}>
+        <span style={{ fontSize: 11, color: C.gold, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1 }}>{pairing.teeTime}</span>
+        <span style={{ fontSize: 9, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif', textTransform: 'uppercase', letterSpacing: 1 }}>
+          {status === 'final' ? 'Final' : status === 'closed' ? 'Closed Out' : status === 'dormie' ? 'Dormie' : `Through ${holesPlayed}`}
+        </span>
+      </div>
+      <div style={styles.mpMatchup}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 9, color: C.gold, letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>A Holes</div>
+          <div style={{ fontSize: 12, color: C.text, marginTop: 2 }}>{teamANames}</div>
+        </div>
+        <div style={{ minWidth: 90, textAlign: 'center', padding: '0 8px' }}>
+          <div style={{ fontSize: 11, color: leadColor, fontWeight: 'bold', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1.3 }}>
+            {statusText}
+          </div>
+        </div>
+        <div style={{ flex: 1, textAlign: 'right' }}>
+          <div style={{ fontSize: 9, color: C.teal, letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>Bum Bandits</div>
+          <div style={{ fontSize: 12, color: C.text, marginTop: 2 }}>{teamBNames}</div>
+        </div>
+      </div>
+      {holesPlayed > 0 && (
+        <div style={styles.mpHoleStrip}>
+          {holes.map(h => {
+            const bg = h.winner === 'A' ? 'rgba(201,168,76,0.45)'
+              : h.winner === 'B' ? 'rgba(78,207,176,0.4)'
+              : h.winner === 'H' ? 'rgba(245,240,232,0.12)'
+              : 'rgba(0,0,0,0.18)';
+            const label = h.winner === 'A' ? 'A' : h.winner === 'B' ? 'B' : h.winner === 'H' ? '½' : '';
+            return (
+              <div key={h.hole} style={{ ...styles.mpHoleCell, background: bg }} title={`Hole ${h.hole}`}>
+                <div style={{ fontSize: 7, color: 'rgba(245,240,232,0.5)', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>{h.hole}</div>
+                <div style={{ fontSize: 9, fontWeight: 'bold', color: 'rgba(245,240,232,0.85)', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>{label}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchPlayList({ scoresByDay }) {
+  return (
+    <div>
+      {[1, 2].map(day => {
+        const dayPairings = PAIRINGS.filter(p => p.day === day);
+        return (
+          <div key={day} style={{ marginBottom: 14 }}>
+            <div style={styles.mpDayLabel}>Day {day} · {day === 1 ? 'Thursday' : 'Friday'}</div>
+            {dayPairings.map((p, i) => (
+              <MatchPlayCard key={`${day}-${i}`} pairing={p} scoreLookup={scoresByDay[day] || {}} />
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function LeaderboardPage({ player }) {
@@ -264,9 +358,10 @@ export default function LeaderboardPage({ player }) {
         {/* VIEW TABS */}
         <div style={styles.tabRow}>
           {[
-            { id: 'pairs1', label: 'Pairs · Day 1' },
-            { id: 'pairs2', label: 'Pairs · Day 2' },
-            { id: 'individuals2', label: 'Individuals · Day 2' },
+            { id: 'pairs1', label: 'Pairs · D1' },
+            { id: 'pairs2', label: 'Pairs · D2' },
+            { id: 'matchplay', label: 'Match Play' },
+            { id: 'individuals2', label: 'Indiv · D2' },
           ].map(t => (
             <button key={t.id} onClick={() => setView(t.id)}
               style={{ ...styles.tabBtn, ...(view === t.id ? styles.tabBtnActive : {}) }}>
@@ -279,6 +374,7 @@ export default function LeaderboardPage({ player }) {
         <div style={{ padding: '4px 8px 12px' }}>
           {view === 'pairs1' && <PairsList day={1} pairs={pairsRankingForDay(1, scoresByDay)} dayTeamA={aDay1} dayTeamB={bDay1} />}
           {view === 'pairs2' && <PairsList day={2} pairs={pairsRankingForDay(2, scoresByDay)} dayTeamA={aDay2} dayTeamB={bDay2} />}
+          {view === 'matchplay' && <MatchPlayList scoresByDay={scoresByDay} />}
           {view === 'individuals2' && <IndividualsList players={individualsRankingForDay(2, scoresByDay)} />}
         </div>
 
@@ -286,6 +382,7 @@ export default function LeaderboardPage({ player }) {
         <div style={styles.dayHint}>
           {view === 'pairs1' && DAY_FORMAT[1]}
           {view === 'pairs2' && DAY_FORMAT[2]}
+          {view === 'matchplay' && 'Four-Ball Better-Ball Match Play · per fourball, both days'}
           {view === 'individuals2' && 'Individual Stableford · Day 2 only'}
         </div>
 
@@ -324,6 +421,12 @@ const styles = {
   dayBannerLabel: { fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(201,168,76,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', textAlign: 'center', marginBottom: 8 },
   dayBannerRow: { display: 'flex', alignItems: 'center' },
   rankRow: { display: 'flex', alignItems: 'center', padding: '10px 14px', margin: '4px 8px', background: 'rgba(0,0,0,0.18)', borderRadius: 3, border: '1px solid rgba(245,240,232,0.05)' },
+  mpDayLabel: { fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase', color: 'rgba(201,168,76,0.55)', fontFamily: 'Helvetica Neue,Arial,sans-serif', padding: '8px 14px 4px', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)' },
+  mpCard: { margin: '6px 8px', background: 'rgba(0,0,0,0.22)', borderRadius: 3, border: '1px solid rgba(245,240,232,0.05)', overflow: 'hidden' },
+  mpHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 12px', background: 'rgba(0,0,0,0.18)', borderBottom: '1px solid rgba(245,240,232,0.05)' },
+  mpMatchup: { display: 'flex', alignItems: 'center', padding: '10px 12px' },
+  mpHoleStrip: { display: 'flex', flexWrap: 'wrap', gap: 2, padding: '6px 8px 10px', borderTop: '1px solid rgba(245,240,232,0.04)' },
+  mpHoleCell: { width: 22, height: 26, borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
   medal: { fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0 },
   rankNum: { fontSize: 13, color: 'rgba(245,240,232,0.4)', width: 24, textAlign: 'center', flexShrink: 0, fontFamily: 'Helvetica Neue,Arial,sans-serif' },
   ptsBig: { fontSize: 22, fontWeight: 'bold', fontFamily: "Georgia,'Times New Roman',serif", lineHeight: 1 },
