@@ -7,7 +7,8 @@ const C = { green: '#1c4832', darkGreen: '#0e2d1c', gold: '#c9a84c', teal: '#4ec
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function pairStablefordTotal(idx1, idx2, scoreLookup) {
+// Better-ball: max of the two players' Stableford pts each hole (used for team A vs B match)
+function pairBetterBallStableford(idx1, idx2, scoreLookup) {
   const hcp1 = PLAYERS[idx1].playingHcp;
   const hcp2 = PLAYERS[idx2].playingHcp;
   const s1 = scoreLookup[idx1] || {};
@@ -22,6 +23,13 @@ function pairStablefordTotal(idx1, idx2, scoreLookup) {
   return { total, holes };
 }
 
+// Aggregate: sum of both players' Stableford pts each hole (used for pair rankings)
+function pairAggregateStableford(idx1, idx2, scoreLookup) {
+  const a = playerStablefordTotal(idx1, scoreLookup);
+  const b = playerStablefordTotal(idx2, scoreLookup);
+  return { total: a.total + b.total, holes: Math.max(a.holes, b.holes) };
+}
+
 function playerStablefordTotal(idx, scoreLookup) {
   const hcp = PLAYERS[idx].playingHcp;
   const s = scoreLookup[idx] || {};
@@ -34,25 +42,27 @@ function playerStablefordTotal(idx, scoreLookup) {
   return { total, holes };
 }
 
+// Team-vs-team uses better-ball (the cup format)
 function teamDayTotal(day, team, scoresByDay) {
   const dayPairings = PAIRINGS.filter(p => p.day === day);
   return dayPairings.reduce((sum, p) => {
     const pair = team === 'A' ? p.teamA : p.teamB;
-    return sum + pairStablefordTotal(pair[0], pair[1], scoresByDay[day] || {}).total;
+    return sum + pairBetterBallStableford(pair[0], pair[1], scoresByDay[day] || {}).total;
   }, 0);
 }
 
+// Pair rankings use aggregate (sum) Stableford
 function pairsRankingForDay(day, scoresByDay) {
   const dayPairings = PAIRINGS.filter(p => p.day === day);
   const list = [];
   dayPairings.forEach(p => {
-    const a = pairStablefordTotal(p.teamA[0], p.teamA[1], scoresByDay[day] || {});
+    const a = pairAggregateStableford(p.teamA[0], p.teamA[1], scoresByDay[day] || {});
     list.push({
       key: `${p.teeTime}-A`, team: 'A', teamLabel: 'A Holes', color: C.gold,
       names: p.teamA.map(i => PLAYERS[i].name.split(' ')[0]),
       teeTime: p.teeTime, total: a.total, holes: a.holes,
     });
-    const b = pairStablefordTotal(p.teamB[0], p.teamB[1], scoresByDay[day] || {});
+    const b = pairAggregateStableford(p.teamB[0], p.teamB[1], scoresByDay[day] || {});
     list.push({
       key: `${p.teeTime}-B`, team: 'B', teamLabel: 'Bum Bandits', color: C.teal,
       names: p.teamB.map(i => PLAYERS[i].name.split(' ')[0]),
@@ -105,10 +115,14 @@ function DayTeamBanner({ day, aTotal, bTotal }) {
 }
 
 function PairsList({ pairs, dayTeamA, dayTeamB, day }) {
+  const hasScores = pairs.length && pairs.some(p => p.holes > 0);
   return (
     <div>
       <DayTeamBanner day={day} aTotal={dayTeamA} bTotal={dayTeamB} />
-      {!pairs.length || pairs.every(p => p.holes === 0) ? (
+      {hasScores && (
+        <div style={styles.subSectionLabel}>Pair Rankings · Aggregate Stableford</div>
+      )}
+      {!hasScores ? (
         <div style={styles.emptyState}>No pair scores entered yet</div>
       ) : pairs.map((p, i) => (
         <div key={p.key} style={styles.rankRow}>
@@ -305,6 +319,7 @@ const styles = {
   tabRow: { display: 'flex', gap: 0, padding: '10px 12px 6px', borderBottom: '1px solid rgba(245,240,232,0.05)' },
   tabBtn: { flex: 1, padding: '8px 4px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: 'rgba(245,240,232,0.4)', fontSize: 10, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 0.5 },
   tabBtnActive: { color: C.gold, borderBottom: '2px solid #c9a84c' },
+  subSectionLabel: { fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(201,168,76,0.5)', fontFamily: 'Helvetica Neue,Arial,sans-serif', textAlign: 'center', padding: '12px 8px 4px', borderTop: '1px solid rgba(245,240,232,0.04)', marginTop: 6 },
   dayBanner: { margin: '6px 8px 10px', padding: '12px 14px', background: 'rgba(0,0,0,0.28)', borderRadius: 3, border: '1px solid rgba(201,168,76,0.18)' },
   dayBannerLabel: { fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(201,168,76,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', textAlign: 'center', marginBottom: 8 },
   dayBannerRow: { display: 'flex', alignItems: 'center' },
