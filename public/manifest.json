@@ -1,7 +1,7 @@
 {
-  "name": "SFGC Invitational",
-  "short_name": "SFGC Inv",
-  "description": "Stellenbosch Golf Club Invitational 2026 — Bum Bandits vs A Holes",
+  "name": "Golf Pairings",
+  "short_name": "Golf",
+  "description": "Live tournament scoring, leaderboards, and match-play results.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

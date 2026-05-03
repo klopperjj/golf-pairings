@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { PLAYERS, PAR } from '../lib/gameData.js';
+import { PAR } from '../lib/gameData.js';
+import { useEvent } from '../lib/eventContext.jsx';
 import { stablefordPoints } from '../lib/scoring.js';
 import { supabase } from '../lib/supabase.js';
 
@@ -60,6 +61,8 @@ function scoreColor(diff) {
 }
 
 export default function AdminPage({ player, token }) {
+  const { event, eventId, players: eventPlayers, teamNames, isArchived, dayCount, hcpAllowance: eventAllowance } = useEvent();
+
   const [tab, setTab] = useState('scores');
 
   // ── Scores tab state ──────────────────────────────────────
@@ -87,12 +90,13 @@ export default function AdminPage({ player, token }) {
   const [pinMsgs, setPinMsgs] = useState({});         // { playerIndex: msg }
 
   // ── Load scores ───────────────────────────────────────────
-  useEffect(() => { loadScores(); }, [roundDay]);
+  useEffect(() => { if (eventId) loadScores(); }, [eventId, roundDay]);
 
   async function loadScores() {
     const { data } = await supabase
       .from('scores')
       .select('player_index, hole_number, gross_score')
+      .eq('event_id', eventId)
       .eq('round_day', roundDay);
     if (!data) return;
     const lookup = {};
@@ -105,9 +109,11 @@ export default function AdminPage({ player, token }) {
 
   // ── Load players (handicaps + PINs tabs) ──────────────────
   useEffect(() => {
+    if (!eventId) return;
     supabase
       .from('players')
       .select('player_index, name, team, course_hcp, playing_hcp, mobile')
+      .eq('event_id', eventId)
       .order('player_index')
       .then(({ data }) => {
         if (!data) return;
@@ -120,14 +126,18 @@ export default function AdminPage({ player, token }) {
         });
         setHcpEdits(edits);
         setPinEdits(pinE);
-        // Infer current allowance from first player with course_hcp > 0
-        const sample = data.find(p => p.course_hcp > 0);
-        if (sample) {
-          const inferred = Math.round((sample.playing_hcp / sample.course_hcp) * 100);
-          if (!isNaN(inferred) && inferred > 0) setAllowance(inferred);
+        // Use the event's configured allowance, falling back to inferring from data
+        if (eventAllowance) {
+          setAllowance(eventAllowance);
+        } else {
+          const sample = data.find(p => p.course_hcp > 0);
+          if (sample) {
+            const inferred = Math.round((sample.playing_hcp / sample.course_hcp) * 100);
+            if (!isNaN(inferred) && inferred > 0) setAllowance(inferred);
+          }
         }
       });
-  }, []);
+  }, [eventId, eventAllowance]);
 
   // ── PIN management ────────────────────────────────────────
   async function callPinApi(playerIndex, body, successMsg) {
@@ -285,7 +295,7 @@ export default function AdminPage({ player, token }) {
   }
 
   // ── Access guard ──────────────────────────────────────────
-  if (!player || player.player_index !== 0) {
+  if (!player || !player.is_admin) {
     return (
       <div style={{ background: C.darkGreen, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ color: 'rgba(245,240,232,0.35)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontSize: 13 }}>Access denied.</div>
@@ -301,8 +311,9 @@ export default function AdminPage({ player, token }) {
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ color: C.gold, fontSize: 9, letterSpacing: 4, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginBottom: 6 }}>Admin · Stellenbosch Invitational 2026</div>
+          <div style={{ color: C.gold, fontSize: 9, letterSpacing: 4, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginBottom: 6 }}>Admin · {event?.name || 'Golf Pairings'}</div>
           <div style={{ color: C.text, fontSize: 20 }}>Tournament Management</div>
+          {isArchived && <div style={{ marginTop: 8, fontSize: 11, color: 'rgba(245,240,232,0.5)', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>🗄 Archived event · read-only</div>}
         </div>
 
         {/* Tab bar */}
@@ -372,11 +383,11 @@ export default function AdminPage({ player, token }) {
                         <tr key={`hdr-${team}`}>
                           <td colSpan={20} style={{ padding: '6px 12px 3px', background: 'rgba(0,0,0,0.15)' }}>
                             <span style={{ fontSize: 8, letterSpacing: 2.5, textTransform: 'uppercase', color: team === 'A' ? 'rgba(201,168,76,0.5)' : 'rgba(78,207,176,0.5)', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>
-                              {team === 'A' ? 'The A Holes' : 'Bum Bandits'}
+                              {team === 'A' ? teamNames.A : teamNames.B}
                             </span>
                           </td>
                         </tr>
-                        {PLAYERS.filter(p => p.team === team).map(p => {
+                        {eventPlayers.filter(p => p.team === team).map(p => {
                           const totalPts = holes.reduce((sum, h) => {
                             const g = scores[p.index]?.[h];
                             return sum + (g != null ? stablefordPoints(g, p.playingHcp, h) : 0);
@@ -461,7 +472,7 @@ export default function AdminPage({ player, token }) {
                 <div key={team}>
                   <div style={{ padding: '8px 16px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(245,240,232,0.05)' }}>
                     <span style={{ fontSize: 8, letterSpacing: 3, textTransform: 'uppercase', fontFamily: 'Helvetica Neue,Arial,sans-serif', color: team === 'A' ? 'rgba(201,168,76,0.55)' : 'rgba(78,207,176,0.55)' }}>
-                      {team === 'A' ? 'The A Holes' : 'Bum Bandits'}
+                      {team === 'A' ? teamNames.A : teamNames.B}
                     </span>
                   </div>
                   {dbPlayers.filter(p => p.team === team).map((p, i) => {
@@ -476,7 +487,7 @@ export default function AdminPage({ player, token }) {
                         <div style={{ minWidth: 140, flex: 1 }}>
                           <div style={{ fontSize: 13, color: 'rgba(245,240,232,0.85)', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>{p.name}</div>
                           <div style={{ fontSize: 9, color: 'rgba(245,240,232,0.3)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 1 }}>
-                            {team === 'A' ? 'A Holes' : 'Bum Bandits'}
+                            {team === 'A' ? teamNames.A : teamNames.B}
                           </div>
                         </div>
 

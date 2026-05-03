@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { PAIRINGS, PLAYERS, PAR, STROKE_INDEX, DAY_FORMAT } from '../lib/gameData.js';
+import { PAR, STROKE_INDEX } from '../lib/gameData.js';
+import { useEvent } from '../lib/eventContext.jsx';
 import { strokesOnHole, stablefordPoints } from '../lib/scoring.js';
 import { supabase } from '../lib/supabase.js';
 
@@ -21,8 +22,16 @@ function scoreLabel(diff) {
 }
 
 export default function ScorePage({ player, token, onLogout }) {
-  const today = new Date();
-  const defaultDay = today.toDateString() === new Date('2026-05-01').toDateString() ? 2 : 1;
+  const { event, eventId, players: eventPlayers, pairings, dayFormat, teamNames, isReadOnly, dayCount } = useEvent();
+
+  // Default day: if today is on or after the second day, default to day 2; else day 1
+  const defaultDay = (() => {
+    if (!event?.start_date) return 1;
+    const start = new Date(event.start_date);
+    const day2 = new Date(start); day2.setDate(start.getDate() + 1);
+    const today = new Date();
+    return today.toDateString() === day2.toDateString() ? 2 : 1;
+  })();
 
   const [roundDay, setRoundDay] = useState(defaultDay);
   const [currentHole, setCurrentHole] = useState(1);
@@ -32,22 +41,24 @@ export default function ScorePage({ player, token, onLogout }) {
   const [approvals, setApprovals] = useState([]); // player_index[]
   const [approving, setApproving] = useState(false);
 
-  // Find pairing for this player
-  const pairing = PAIRINGS.find(p =>
+  // Find pairing for this player in this event
+  const pairing = pairings.find(p =>
     p.day === roundDay &&
     (p.teamA.includes(player.player_index) || p.teamB.includes(player.player_index))
   );
 
-  const teamAPlayers = pairing ? pairing.teamA.map(i => PLAYERS[i]) : [];
-  const teamBPlayers = pairing ? pairing.teamB.map(i => PLAYERS[i]) : [];
+  const playerByIdx = (idx) => eventPlayers.find(p => p.index === idx);
+  const teamAPlayers = pairing ? pairing.teamA.map(playerByIdx).filter(Boolean) : [];
+  const teamBPlayers = pairing ? pairing.teamB.map(playerByIdx).filter(Boolean) : [];
   const allFourIndices = pairing ? [...pairing.teamA, ...pairing.teamB] : [];
 
   // Load existing scores
   useEffect(() => {
-    if (!pairing) return;
+    if (!pairing || !eventId) return;
     supabase
       .from('scores')
       .select('player_index, hole_number, gross_score')
+      .eq('event_id', eventId)
       .eq('round_day', roundDay)
       .in('player_index', allFourIndices)
       .then(({ data }) => {
@@ -59,51 +70,57 @@ export default function ScorePage({ player, token, onLogout }) {
         });
         setHoleScores(lookup);
       });
-  }, [roundDay, pairing?.teeTime]);
+  }, [eventId, roundDay, pairing?.teeTime]);
 
   // Load approvals
   useEffect(() => {
-    if (!pairing) return;
+    if (!pairing || !eventId) return;
     supabase
       .from('approvals')
       .select('player_index')
+      .eq('event_id', eventId)
       .eq('round_day', roundDay)
       .eq('tee_time', pairing.teeTime)
       .then(({ data }) => {
         if (data) setApprovals(data.map(a => a.player_index));
       });
-  }, [roundDay, pairing?.teeTime]);
+  }, [eventId, roundDay, pairing?.teeTime]);
 
-  // Real-time scores
+  // Real-time scores (filtered to this event)
   useEffect(() => {
+    if (!eventId) return;
     const ch = supabase
-      .channel('scores-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, payload => {
-        const row = payload.new;
-        if (!row) return;
-        setHoleScores(prev => ({
-          ...prev,
-          [row.hole_number]: { ...(prev[row.hole_number] || {}), [row.player_index]: row.gross_score },
-        }));
-      })
+      .channel(`scores-live-${eventId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'scores', filter: `event_id=eq.${eventId}` },
+        payload => {
+          const row = payload.new;
+          if (!row) return;
+          setHoleScores(prev => ({
+            ...prev,
+            [row.hole_number]: { ...(prev[row.hole_number] || {}), [row.player_index]: row.gross_score },
+          }));
+        })
       .subscribe();
     return () => supabase.removeChannel(ch);
-  }, []);
+  }, [eventId]);
 
-  // Real-time approvals
+  // Real-time approvals (filtered to this event)
   useEffect(() => {
-    if (!pairing) return;
+    if (!pairing || !eventId) return;
     const ch = supabase
-      .channel('approvals-live')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'approvals' }, payload => {
-        const row = payload.new;
-        if (row?.round_day === roundDay && row?.tee_time === pairing.teeTime) {
-          setApprovals(prev => [...new Set([...prev, row.player_index])]);
-        }
-      })
+      .channel(`approvals-live-${eventId}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'approvals', filter: `event_id=eq.${eventId}` },
+        payload => {
+          const row = payload.new;
+          if (row?.round_day === roundDay && row?.tee_time === pairing.teeTime) {
+            setApprovals(prev => [...new Set([...prev, row.player_index])]);
+          }
+        })
       .subscribe();
     return () => supabase.removeChannel(ch);
-  }, [roundDay, pairing?.teeTime]);
+  }, [eventId, roundDay, pairing?.teeTime]);
 
   function setScore(hole, playerIndex, gross) {
     setHoleScores(prev => ({
@@ -203,8 +220,14 @@ export default function ScorePage({ player, token, onLogout }) {
       const bScores = pairing.teamB.map(idx => holeScores[h]?.[idx]).filter(g => g != null);
       if (!aScores.length && !bScores.length) return;
       count++;
-      a += Math.max(0, ...pairing.teamA.map(idx => holeScores[h]?.[idx] != null ? stablefordPoints(holeScores[h][idx], PLAYERS[idx].playingHcp, h) : 0));
-      b += Math.max(0, ...pairing.teamB.map(idx => holeScores[h]?.[idx] != null ? stablefordPoints(holeScores[h][idx], PLAYERS[idx].playingHcp, h) : 0));
+      a += Math.max(0, ...pairing.teamA.map(idx => {
+        const pl = playerByIdx(idx);
+        return holeScores[h]?.[idx] != null && pl ? stablefordPoints(holeScores[h][idx], pl.playingHcp, h) : 0;
+      }));
+      b += Math.max(0, ...pairing.teamB.map(idx => {
+        const pl = playerByIdx(idx);
+        return holeScores[h]?.[idx] != null && pl ? stablefordPoints(holeScores[h][idx], pl.playingHcp, h) : 0;
+      }));
     });
     return { pairPts: a, oppPts: b, holesWithScores: count };
   })();
@@ -216,28 +239,29 @@ export default function ScorePage({ player, token, onLogout }) {
 
         {/* Header */}
         <div style={S.header}>
-          <div style={S.eyebrow}>Stellenbosch Invitational · 2026</div>
+          <div style={S.eyebrow}>{event?.name || 'Golf Pairings'}</div>
           <div style={S.title}>Score Entry</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
-            {[1, 2].map(d => (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            {Array.from({ length: dayCount }, (_, i) => i + 1).map(d => (
               <button key={d} onClick={() => { setRoundDay(d); setCurrentHole(1); }}
                 style={{ ...S.dayBtn, ...(roundDay === d ? S.dayBtnActive : {}) }}>
-                Day {d} · {d === 1 ? 'Thu' : 'Fri'}
+                Day {d}
               </button>
             ))}
           </div>
-          <div style={S.formatTag}>{DAY_FORMAT[roundDay]}</div>
+          <div style={S.formatTag}>{dayFormat[roundDay] || ''}</div>
+          {isReadOnly && <div style={S.archivedTag}>🗄 Archived event · read-only</div>}
         </div>
 
         {/* Cumulative Stableford scoreboard */}
         {holesWithScores > 0 && (() => {
           const diff = pairPts - oppPts;
-          const statusText = diff === 0 ? 'All Square' : diff > 0 ? `A Holes +${diff}` : `Bum Bandits +${Math.abs(diff)}`;
+          const statusText = diff === 0 ? 'All Square' : diff > 0 ? `${teamNames.A} +${diff}` : `${teamNames.B} +${Math.abs(diff)}`;
           const statusColor = diff === 0 ? 'rgba(245,240,232,0.45)' : diff > 0 ? C.gold : C.teal;
           return (
             <div style={{ padding: '8px 20px', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid rgba(245,240,232,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: 9, color: C.gold, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1, opacity: 0.7 }}>A Holes</div>
+                <div style={{ fontSize: 9, color: C.gold, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1, opacity: 0.7 }}>{teamNames.A}</div>
                 <div style={{ fontSize: 18, color: C.gold, fontFamily: "Georgia,'Times New Roman',serif" }}>{pairPts}<span style={{ fontSize: 10, marginLeft: 2 }}>pts</span></div>
               </div>
               <div style={{ textAlign: 'center', flex: 1.2 }}>
@@ -245,7 +269,7 @@ export default function ScorePage({ player, token, onLogout }) {
                 <div style={{ fontSize: 11, color: statusColor, fontFamily: 'Helvetica Neue,Arial,sans-serif', fontWeight: 'bold' }}>{statusText}</div>
               </div>
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: 9, color: C.teal, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1, opacity: 0.7 }}>Bum Bandits</div>
+                <div style={{ fontSize: 9, color: C.teal, fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 1, opacity: 0.7 }}>{teamNames.B}</div>
                 <div style={{ fontSize: 18, color: C.teal, fontFamily: "Georgia,'Times New Roman',serif" }}>{oppPts}<span style={{ fontSize: 10, marginLeft: 2 }}>pts</span></div>
               </div>
             </div>
@@ -264,8 +288,8 @@ export default function ScorePage({ player, token, onLogout }) {
 
         {/* Score entry — both teams, all 4 players editable */}
         {[
-          { label: 'The A Holes', color: C.gold, players: teamAPlayers },
-          { label: 'Bum Bandits', color: C.teal,  players: teamBPlayers },
+          { label: teamNames.A, color: C.gold, players: teamAPlayers },
+          { label: teamNames.B, color: C.teal,  players: teamBPlayers },
         ].map(({ label, color, players }) => (
           <div key={label} style={{ ...S.section, borderBottom: '1px solid rgba(245,240,232,0.07)' }}>
             <div style={{ ...S.sectionLabel, color: `${color}88` }}>{label}</div>
@@ -303,8 +327,8 @@ export default function ScorePage({ player, token, onLogout }) {
         <div style={{ padding: '0 24px 20px' }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={resetHole} style={S.resetBtn}>↺ Reset</button>
-            <button onClick={saveHole} disabled={saving} style={{ ...S.saveBtn, flex: 1, marginTop: 0 }}>
-              {saving ? 'Saving…' : `Save Hole ${currentHole}`}
+            <button onClick={saveHole} disabled={saving || isReadOnly} style={{ ...S.saveBtn, flex: 1, marginTop: 0, opacity: isReadOnly ? 0.4 : 1, cursor: isReadOnly ? 'default' : 'pointer' }}>
+              {isReadOnly ? '🗄 Archived — read-only' : saving ? 'Saving…' : `Save Hole ${currentHole}`}
             </button>
           </div>
           {saveMsg && (
@@ -362,12 +386,12 @@ export default function ScorePage({ player, token, onLogout }) {
 
               {/* Team approval rows */}
               {[
-                { team: 'A', label: 'The A Holes', color: C.gold, players: pairing.teamA },
-                { team: 'B', label: 'Bum Bandits',  color: C.teal, players: pairing.teamB },
+                { team: 'A', label: teamNames.A, color: C.gold, players: pairing.teamA },
+                { team: 'B', label: teamNames.B, color: C.teal, players: pairing.teamB },
               ].map(({ team, label, color, players }) => {
                 const approved = players.some(i => approvals.includes(i));
                 const approvedName = approved
-                  ? PLAYERS[players.find(i => approvals.includes(i))].name.split(' ')[0]
+                  ? (playerByIdx(players.find(i => approvals.includes(i)))?.name.split(' ')[0] || '')
                   : null;
                 return (
                   <div key={team} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -384,16 +408,17 @@ export default function ScorePage({ player, token, onLogout }) {
               {/* Approve button for current player */}
               {iHaveApproved ? (
                 <div style={{ textAlign: 'center', marginTop: 4, fontSize: 11, color: '#6ad35d', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>
-                  ✓ You have approved · waiting for {myTeam === 'A' ? 'Bum Bandits' : 'A Holes'}
+                  ✓ You have approved · waiting for {myTeam === 'A' ? teamNames.B : teamNames.A}
                 </div>
               ) : (
-                <button onClick={approveScorecard} disabled={approving} style={{
+                <button onClick={approveScorecard} disabled={approving || isReadOnly} style={{
                   width: '100%', marginTop: 6,
                   background: 'rgba(106,211,93,0.12)', border: '1px solid rgba(106,211,93,0.35)',
                   borderRadius: 3, color: '#6ad35d', fontSize: 13, padding: '10px 0',
-                  cursor: 'pointer', fontFamily: "Georgia,'Times New Roman',serif", letterSpacing: 0.5,
+                  cursor: isReadOnly ? 'default' : 'pointer', fontFamily: "Georgia,'Times New Roman',serif", letterSpacing: 0.5,
+                  opacity: isReadOnly ? 0.4 : 1,
                 }}>
-                  {approving ? 'Approving…' : '✓ Approve Full Scorecard'}
+                  {isReadOnly ? '🗄 Read-only' : approving ? 'Approving…' : '✓ Approve Full Scorecard'}
                 </button>
               )}
 
@@ -424,6 +449,7 @@ const S = {
   dayBtn: { padding: '5px 14px', borderRadius: 2, border: '1px solid rgba(201,168,76,0.25)', background: 'transparent', color: 'rgba(245,240,232,0.45)', fontSize: 11, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif' },
   dayBtnActive: { background: 'rgba(201,168,76,0.15)', color: C.gold, borderColor: 'rgba(201,168,76,0.5)' },
   formatTag: { fontSize: 10, color: 'rgba(245,240,232,0.35)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontStyle: 'italic', marginTop: 6 },
+  archivedTag: { fontSize: 10, color: 'rgba(245,240,232,0.5)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 6, padding: '4px 8px', background: 'rgba(245,240,232,0.06)', border: '1px solid rgba(245,240,232,0.15)', borderRadius: 2, display: 'inline-block', letterSpacing: 1 },
   holeNav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid rgba(245,240,232,0.07)' },
   navBtn: { background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(201,168,76,0.2)', color: C.gold, width: 36, height: 36, borderRadius: 3, fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   holeBadge: { textAlign: 'center' },

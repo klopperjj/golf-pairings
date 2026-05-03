@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useEvent } from '../lib/eventContext.jsx';
 
 export default function LoginPage({ onLogin }) {
+  const { event, eventSlug } = useEvent();
   const [mobile, setMobile] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -35,6 +37,7 @@ export default function LoginPage({ onLogin }) {
           mobile: mobile.trim(),
           pin: pin.trim(),
           deviceFingerprint: getDeviceFingerprint(),
+          eventSlug: eventSlug || null,
         }),
       });
 
@@ -65,7 +68,7 @@ export default function LoginPage({ onLogin }) {
             <rect x="14.2" y="6" width="1.6" height="20" fill="#c9a84c" />
             <polygon points="15.8,6 25,11 15.8,16" fill="#c9a84c" />
           </svg>
-          <div style={styles.eyebrow}>Stellenbosch Invitational · 2026</div>
+          <div style={styles.eyebrow}>{event?.name || 'Golf Pairings'}</div>
           <div style={styles.title}>Score Entry</div>
           <div style={styles.sub}>Sign in to enter your four-ball scores</div>
         </div>

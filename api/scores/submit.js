@@ -1,10 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '../_lib/event.js';
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = getSupabase();
 
 function verifyToken(req) {
   const auth = req.headers.authorization;
@@ -18,6 +15,8 @@ export default async function handler(req, res) {
 
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorised' });
+  if (!user.event_id) return res.status(400).json({ error: 'Token missing event scope — please sign in again' });
+  if (user.is_archived) return res.status(403).json({ error: 'Cannot edit scores for an archived event' });
 
   const { roundDay, holeNumber, scores } = req.body;
 
@@ -27,24 +26,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid hole number' });
 
   try {
-    // Find the submitting player's pairing to get their tee_time
+    // Find the submitting player's pairing in this event
     const { data: myPairing } = await supabase
       .from('pairings')
       .select('tee_time')
+      .eq('event_id', user.event_id)
       .eq('round_day', roundDay)
       .or(`player1_index.eq.${user.player_index},player2_index.eq.${user.player_index}`)
       .single();
 
     if (!myPairing) return res.status(403).json({ error: 'No pairing found for this round' });
 
-    // Get ALL four players in this fourball (both pairings at same tee_time)
+    // Get ALL four players in this fourball
     const { data: groupPairings } = await supabase
       .from('pairings')
       .select('player1_index, player2_index')
+      .eq('event_id', user.event_id)
       .eq('round_day', roundDay)
       .eq('tee_time', myPairing.tee_time);
 
-    const fourbAllIndices = groupPairings.flatMap(p => [p.player1_index, p.player2_index]);
+    const fourbAllIndices = (groupPairings || []).flatMap(p => [p.player1_index, p.player2_index]);
 
     // Validate all submitted scores belong to players in this fourball
     for (const { playerIndex } of scores) {
@@ -52,10 +53,11 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: `Player ${playerIndex} is not in your fourball` });
     }
 
-    // Upsert scores
+    // Upsert scores (event-scoped)
     const rows = scores
       .filter(s => s.grossScore != null && s.grossScore >= 1 && s.grossScore <= 15)
       .map(({ playerIndex, grossScore }) => ({
+        event_id: user.event_id,
         player_index: playerIndex,
         round_day: roundDay,
         hole_number: holeNumber,
@@ -67,7 +69,7 @@ export default async function handler(req, res) {
 
     const { error } = await supabase
       .from('scores')
-      .upsert(rows, { onConflict: 'player_index,round_day,hole_number' });
+      .upsert(rows, { onConflict: 'event_id,player_index,round_day,hole_number' });
 
     if (error) throw error;
     return res.status(200).json({ ok: true, saved: rows.length });

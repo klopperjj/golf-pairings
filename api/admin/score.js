@@ -1,10 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '../_lib/event.js';
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = getSupabase();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -19,10 +16,9 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 
-  // Admin only — Juan Klopper (player_index 0)
-  if (decoded.player_index !== 0) {
-    return res.status(403).json({ error: 'Admin access only' });
-  }
+  if (!decoded.is_admin) return res.status(403).json({ error: 'Admin access only' });
+  if (!decoded.event_id) return res.status(400).json({ error: 'Token missing event scope' });
+  if (decoded.is_archived) return res.status(403).json({ error: 'Cannot edit scores for an archived event' });
 
   const { roundDay, holeNumber, playerIndex, grossScore } = req.body;
 
@@ -34,12 +30,13 @@ export default async function handler(req, res) {
   }
 
   const { error } = await supabase.from('scores').upsert({
+    event_id: decoded.event_id,
     player_index: playerIndex,
     round_day: roundDay,
     hole_number: holeNumber,
     gross_score: grossScore,
     entered_by_index: decoded.player_index,
-  }, { onConflict: 'player_index,round_day,hole_number' });
+  }, { onConflict: 'event_id,player_index,round_day,hole_number' });
 
   if (error) return res.status(500).json({ error: error.message });
   return res.status(200).json({ ok: true });
