@@ -99,27 +99,67 @@ ALTER TABLE scores    ALTER COLUMN event_id SET NOT NULL;
 ALTER TABLE approvals ALTER COLUMN event_id SET NOT NULL;
 
 -- ── 6. Re-scope unique constraints to be event-scoped ───────────────
--- Players
+--
+-- The original schema has FKs pointing at players(player_index)'s unique
+-- constraint. We drop those FKs first, drop the old unique, build the new
+-- composite unique on (event_id, player_index), then recreate the FKs as
+-- composite so they reference the right player within the same event.
+
+-- 6a. Drop dependent FKs that point at the old unique constraints
+ALTER TABLE pairings  DROP CONSTRAINT IF EXISTS pairings_player1_index_fkey;
+ALTER TABLE pairings  DROP CONSTRAINT IF EXISTS pairings_player2_index_fkey;
+ALTER TABLE scores    DROP CONSTRAINT IF EXISTS scores_player_index_fkey;
+ALTER TABLE scores    DROP CONSTRAINT IF EXISTS scores_entered_by_index_fkey;
+ALTER TABLE approvals DROP CONSTRAINT IF EXISTS approvals_player_index_fkey;
+
+-- 6b. Drop old unique constraints on players
 ALTER TABLE players DROP CONSTRAINT IF EXISTS players_player_index_key;
 ALTER TABLE players DROP CONSTRAINT IF EXISTS players_mobile_key;
-CREATE UNIQUE INDEX IF NOT EXISTS players_event_idx_uniq    ON players(event_id, player_index);
-CREATE UNIQUE INDEX IF NOT EXISTS players_event_mobile_uniq ON players(event_id, mobile);
 
--- Pairings
+-- 6c. Create new composite uniques on players (must be CONSTRAINTS, not just
+--     INDEXes, so FKs can reference them in 6e)
+ALTER TABLE players DROP CONSTRAINT IF EXISTS players_event_player_idx_uniq;
+ALTER TABLE players ADD  CONSTRAINT players_event_player_idx_uniq UNIQUE (event_id, player_index);
+ALTER TABLE players DROP CONSTRAINT IF EXISTS players_event_mobile_uniq;
+ALTER TABLE players ADD  CONSTRAINT players_event_mobile_uniq    UNIQUE (event_id, mobile);
+
+-- 6d. Pairings, scores, approvals — composite uniques (just for data integrity,
+--     no FKs reference these)
 ALTER TABLE pairings DROP CONSTRAINT IF EXISTS pairings_round_day_player1_index_key;
 ALTER TABLE pairings DROP CONSTRAINT IF EXISTS pairings_round_day_player2_index_key;
 CREATE UNIQUE INDEX IF NOT EXISTS pairings_event_day_p1 ON pairings(event_id, round_day, player1_index);
 CREATE UNIQUE INDEX IF NOT EXISTS pairings_event_day_p2 ON pairings(event_id, round_day, player2_index);
 
--- Scores
 ALTER TABLE scores DROP CONSTRAINT IF EXISTS scores_player_index_round_day_hole_number_key;
 CREATE UNIQUE INDEX IF NOT EXISTS scores_event_player_day_hole
   ON scores(event_id, player_index, round_day, hole_number);
 
--- Approvals
 ALTER TABLE approvals DROP CONSTRAINT IF EXISTS approvals_round_day_tee_time_player_index_key;
 CREATE UNIQUE INDEX IF NOT EXISTS approvals_event_day_tee_player
   ON approvals(event_id, round_day, tee_time, player_index);
+
+-- 6e. Recreate the FKs from pairings/scores/approvals to players, but composite
+--     so the player must belong to the SAME event.
+ALTER TABLE pairings ADD CONSTRAINT pairings_p1_event_fk
+  FOREIGN KEY (event_id, player1_index)
+  REFERENCES players(event_id, player_index)
+  DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE pairings ADD CONSTRAINT pairings_p2_event_fk
+  FOREIGN KEY (event_id, player2_index)
+  REFERENCES players(event_id, player_index)
+  DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE scores ADD CONSTRAINT scores_player_event_fk
+  FOREIGN KEY (event_id, player_index)
+  REFERENCES players(event_id, player_index)
+  DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE scores ADD CONSTRAINT scores_entered_by_event_fk
+  FOREIGN KEY (event_id, entered_by_index)
+  REFERENCES players(event_id, player_index)
+  DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE approvals ADD CONSTRAINT approvals_player_event_fk
+  FOREIGN KEY (event_id, player_index)
+  REFERENCES players(event_id, player_index)
+  DEFERRABLE INITIALLY DEFERRED;
 
 -- ── 7. Relax round_day check to support 1-5 day events ─────────────
 ALTER TABLE scores    DROP CONSTRAINT IF EXISTS scores_round_day_check;
