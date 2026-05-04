@@ -1,6 +1,24 @@
+import ReactMarkdown from 'react-markdown';
 import { useEvent } from '../lib/eventContext.jsx';
 
 const C = { green: '#1c4832', darkGreen: '#0e2d1c', gold: '#c9a84c', teal: '#4ecfb0', text: '#f5f0e8' };
+
+/** Markdown components styled to match the existing rule-block typography. */
+const MD_COMPONENTS = {
+  h1: ({ children }) => <h2 style={{ fontSize: 16, color: C.gold, marginTop: 16, marginBottom: 8, fontFamily: "Georgia,'Times New Roman',serif", fontWeight: 'normal' }}>{children}</h2>,
+  h2: ({ children }) => <h3 style={{ fontSize: 14, color: C.gold, marginTop: 14, marginBottom: 6, fontFamily: "Georgia,'Times New Roman',serif", fontWeight: 'normal' }}>{children}</h3>,
+  h3: ({ children }) => <h4 style={{ fontSize: 12, color: 'rgba(201,168,76,0.7)', marginTop: 10, marginBottom: 4, fontFamily: 'Helvetica Neue,Arial,sans-serif', textTransform: 'uppercase', letterSpacing: 1 }}>{children}</h4>,
+  p:  ({ children }) => <p style={{ fontSize: 12, color: 'rgba(245,240,232,0.78)', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1.65, margin: '0 0 10px' }}>{children}</p>,
+  ul: ({ children }) => <ul style={{ margin: '0 0 10px 18px', padding: 0, fontSize: 12, color: 'rgba(245,240,232,0.78)', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1.65 }}>{children}</ul>,
+  ol: ({ children }) => <ol style={{ margin: '0 0 10px 18px', padding: 0, fontSize: 12, color: 'rgba(245,240,232,0.78)', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1.65 }}>{children}</ol>,
+  li: ({ children }) => <li style={{ marginBottom: 3 }}>{children}</li>,
+  strong: ({ children }) => <strong style={{ color: C.text, fontWeight: 'bold' }}>{children}</strong>,
+  em: ({ children }) => <em style={{ color: 'rgba(245,240,232,0.65)' }}>{children}</em>,
+  code: ({ children }) => <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: 2, color: C.gold, fontSize: 11, fontFamily: 'monospace' }}>{children}</code>,
+  blockquote: ({ children }) => <blockquote style={{ margin: '10px 0', padding: '6px 12px', borderLeft: `2px solid ${C.gold}`, background: 'rgba(201,168,76,0.05)', fontStyle: 'italic' }}>{children}</blockquote>,
+  hr: () => <hr style={{ border: 'none', borderTop: '1px solid rgba(245,240,232,0.1)', margin: '14px 0' }} />,
+  a: ({ children, href }) => <a href={href} style={{ color: C.gold, textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">{children}</a>,
+};
 
 /**
  * Renders the event's info / draw page.
@@ -71,10 +89,10 @@ export default function EventInfoPage() {
           </Section>
         )}
 
-        {event?.rules_md && <Section title="Rules"><Pre text={event.rules_md} /></Section>}
-        {event?.fines_md && <Section title="Fines"><Pre text={event.fines_md} /></Section>}
-        {event?.transport_md && <Section title="Travel & Stay"><Pre text={event.transport_md} /></Section>}
-        {event?.bios_md && <Section title="Players"><Pre text={event.bios_md} /></Section>}
+        {event?.rules_md && <Section title="Rules"><ReactMarkdown components={MD_COMPONENTS}>{event.rules_md}</ReactMarkdown></Section>}
+        {event?.fines_md && <Section title="Fines"><ReactMarkdown components={MD_COMPONENTS}>{event.fines_md}</ReactMarkdown></Section>}
+        {event?.transport_md && <Section title="Travel & Stay"><ReactMarkdown components={MD_COMPONENTS}>{event.transport_md}</ReactMarkdown></Section>}
+        {event?.bios_md && <Section title="Players"><ReactMarkdown components={MD_COMPONENTS}>{event.bios_md}</ReactMarkdown></Section>}
 
         <div style={S.goldBar} />
       </div>
@@ -89,10 +107,6 @@ function Section({ title, children }) {
       {children}
     </div>
   );
-}
-
-function Pre({ text }) {
-  return <pre style={S.pre}>{text}</pre>;
 }
 
 function formatRange(start, end) {

@@ -558,14 +558,14 @@ export default function AdminPage({ player, token }) {
         {/* ══════════════ SCORES TAB ══════════════ */}
         {tab === 'scores' && (
           <>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
-              {[1, 2].map(d => (
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+              {Array.from({ length: dayCount }, (_, i) => i + 1).map(d => (
                 <button key={d} onClick={() => setRoundDay(d)} style={{
                   padding: '7px 20px', borderRadius: 2, border: '1px solid rgba(201,168,76,0.3)',
                   background: roundDay === d ? 'rgba(201,168,76,0.15)' : 'transparent',
                   color: roundDay === d ? C.gold : 'rgba(245,240,232,0.4)',
                   fontSize: 11, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif',
-                }}>Day {d} · {d === 1 ? 'Thu' : 'Fri'}</button>
+                }}>Day {d}</button>
               ))}
               <button onClick={loadScores} style={{
                 padding: '7px 14px', borderRadius: 2, border: '1px solid rgba(245,240,232,0.12)',
@@ -1038,32 +1038,24 @@ export default function AdminPage({ player, token }) {
               </div>
             </div>
 
-            {/* Reset Day 1 */}
-            <ResetBlock
-              label="Day 1 · Thursday"
-              subtitle="Scramble Drive — Four-Ball Better Ball"
-              day="1"
-              confirmKey={resetConfirm}
-              setConfirm={setResetConfirm}
-              onConfirm={() => doReset(1)}
-              resetting={resetting}
-            />
-
-            {/* Reset Day 2 */}
-            <ResetBlock
-              label="Day 2 · Friday"
-              subtitle="Normal Play — Four-Ball Better Ball"
-              day="2"
-              confirmKey={resetConfirm}
-              setConfirm={setResetConfirm}
-              onConfirm={() => doReset(2)}
-              resetting={resetting}
-            />
+            {/* Per-day resets — driven by event's dayCount */}
+            {Array.from({ length: dayCount }, (_, i) => i + 1).map(d => (
+              <ResetBlock
+                key={d}
+                label={`Day ${d}`}
+                subtitle={event?.day_format_json?.[d] || `Round ${d}`}
+                day={String(d)}
+                confirmKey={resetConfirm}
+                setConfirm={setResetConfirm}
+                onConfirm={() => doReset(d)}
+                resetting={resetting}
+              />
+            ))}
 
             {/* Reset All */}
             <ResetBlock
               label="Reset Entire Tournament"
-              subtitle="Clears all scores — both days"
+              subtitle="Clears all scores — every day"
               day="all"
               confirmKey={resetConfirm}
               setConfirm={setResetConfirm}

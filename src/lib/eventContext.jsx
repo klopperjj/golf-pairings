@@ -36,6 +36,28 @@ function slugFromPath(pathname) {
   return m ? m[1] : null;
 }
 
+/** Update or create a <meta> tag in document.head by `property` or `name`. */
+function setMetaContent(key, content) {
+  if (!content) return;
+  // Try property= first (OG tags), then name= (theme-color etc.)
+  let el = document.head.querySelector(`meta[property="${key}"]`)
+        || document.head.querySelector(`meta[name="${key}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    if (key.startsWith('og:')) el.setAttribute('property', key);
+    else el.setAttribute('name', key);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function formatEventDateRange(start, end) {
+  if (!start) return '';
+  const fmt = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const yr = new Date(end || start).getFullYear();
+  return start === end ? `${fmt(start)} ${yr}` : `${fmt(start)} – ${fmt(end)} ${yr}`;
+}
+
 export function EventProvider({ children }) {
   const location = useLocation();
   const slug = slugFromPath(location.pathname);
@@ -110,10 +132,20 @@ export function EventProvider({ children }) {
     return () => { cancelled = true; };
   }, [slug]);
 
-  // Update <title> when event loads
+  // Update document head (title + Open Graph tags) when event loads.
+  // OG tags don't help static link previews on first load (those are scraped
+  // from index.html), but they do update for SPA navigation and any client
+  // that re-reads after JS runs.
   useEffect(() => {
-    if (event?.name) document.title = event.name;
-  }, [event?.name]);
+    if (!event) return;
+    document.title = event.name;
+    setMetaContent('og:title', event.name);
+    if (event.course_name && event.start_date) {
+      const dateStr = formatEventDateRange(event.start_date, event.end_date);
+      setMetaContent('og:description', `${event.team_a_name} vs ${event.team_b_name} · ${dateStr} · ${event.course_name}`);
+    }
+    setMetaContent('theme-color', event.team_a_color || '#0e2d1c');
+  }, [event?.id, event?.name, event?.course_name, event?.start_date, event?.end_date, event?.team_a_name, event?.team_b_name, event?.team_a_color]);
 
   // Push the active event's PAR / STROKE_INDEX into gameData.js so that
   // scoring.js (which imports them by reference) operates on this event.
