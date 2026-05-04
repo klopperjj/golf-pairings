@@ -44,6 +44,73 @@ function ResetBlock({ label, subtitle, day, confirmKey, setConfirm, onConfirm, r
   );
 }
 
+function FieldRow({ label, value, onChange, type = 'text', multiline = false }) {
+  const C = { gold: '#c9a84c', text: '#f5f0e8' };
+  return (
+    <div style={{ marginBottom: 10, flex: 1 }}>
+      <label style={{ display: 'block', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(201,168,76,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginBottom: 4 }}>
+        {label}
+      </label>
+      {multiline ? (
+        <textarea
+          value={value || ''}
+          onChange={e => onChange(e.target.value)}
+          rows={6}
+          style={{
+            width: '100%', boxSizing: 'border-box', fontSize: 11,
+            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,240,232,0.15)',
+            borderRadius: 2, color: C.text, padding: '6px 10px',
+            fontFamily: 'monospace', resize: 'vertical',
+          }}
+        />
+      ) : (
+        <input
+          type={type}
+          value={value || ''}
+          onChange={e => onChange(e.target.value)}
+          style={{
+            width: '100%', boxSizing: 'border-box', fontSize: 12,
+            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,240,232,0.15)',
+            borderRadius: 2, color: C.text, padding: '7px 10px',
+            fontFamily: 'Helvetica Neue,Arial,sans-serif',
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+const SAMPLE_EVENT_JSON = `{
+  "slug": "spier-2027",
+  "name": "Spier Invitational 2027",
+  "short_name": "Spier 2027",
+  "start_date": "2027-04-29",
+  "end_date": "2027-04-30",
+  "course_name": "Spier Golf Estate",
+  "par_json":          { "1":4,"2":4,"3":4,"4":4,"5":5,"6":4,"7":3,"8":5,"9":3,"10":4,"11":4,"12":5,"13":3,"14":5,"15":3,"16":4,"17":4,"18":4 },
+  "stroke_index_json": { "1":3,"2":9,"3":7,"4":5,"5":11,"6":1,"7":17,"8":15,"9":13,"10":6,"11":10,"12":18,"13":16,"14":12,"15":8,"16":2,"17":14,"18":4 },
+  "team_a_name": "Eagles",
+  "team_b_name": "Birdies",
+  "team_a_color": "#c9a84c",
+  "team_b_color": "#4ecfb0",
+  "day_format_json": {
+    "1": "Scramble Drive · Four-Ball Better Ball Stableford",
+    "2": "Normal Play · Four-Ball Better Ball Stableford"
+  },
+  "hcp_allowance": 85,
+  "set_active": false,
+  "players": [
+    { "player_index": 0, "name": "Juan Klopper",   "team": "B", "mobile": "0820000001", "course_hcp": 22, "playing_hcp": 19, "is_admin": true },
+    { "player_index": 1, "name": "Player Two",     "team": "A", "mobile": "0820000002", "course_hcp": 10, "playing_hcp": 9 }
+    /* ...add the rest of the players... */
+  ],
+  "pairings": [
+    { "round_day": 1, "tee_time": "10:00", "team": "A", "player1_index": 1, "player2_index": 4 },
+    { "round_day": 1, "tee_time": "10:00", "team": "B", "player1_index": 0, "player2_index": 3 }
+    /* ...add the rest of the pairings... */
+  ]
+}`;
+
 function scoreName(diff) {
   if (diff <= -2) return 'Eagle';
   if (diff === -1) return 'Birdie';
@@ -88,6 +155,19 @@ export default function AdminPage({ player, token }) {
   const [pinEdits, setPinEdits] = useState({});       // { playerIndex: { mobile, newPin } }
   const [pinSaving, setPinSaving] = useState(null);
   const [pinMsgs, setPinMsgs] = useState({});         // { playerIndex: msg }
+
+  // ── Events tab state ──────────────────────────────────────
+  const [allEvents, setAllEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [expandedEventId, setExpandedEventId] = useState(null);     // which event card is expanded for editing
+  const [eventEdits, setEventEdits] = useState({});                  // { eventId: { field: newValue } }
+  const [eventBusy, setEventBusy] = useState(null);                  // eventId being acted upon
+  const [eventMsg, setEventMsg] = useState({});                      // { eventId: msg }
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createJson, setCreateJson] = useState('');
+  const [createMsg, setCreateMsg] = useState('');
+  const [createBusy, setCreateBusy] = useState(false);
+  const [activateConfirm, setActivateConfirm] = useState(null);     // eventId being confirmed
 
   // ── Load scores ───────────────────────────────────────────
   useEffect(() => { if (eventId) loadScores(); }, [eventId, roundDay]);
@@ -185,6 +265,137 @@ export default function AdminPage({ player, token }) {
     const edit = pinEdits[playerIndex];
     if (!edit?.mobile) return;
     callPinApi(playerIndex, { mobile: edit.mobile.trim() }, 'Mobile saved');
+  }
+
+  // ── Events management ─────────────────────────────────────
+  useEffect(() => {
+    if (tab !== 'events') return;
+    loadAllEvents();
+  }, [tab]);
+
+  async function loadAllEvents() {
+    setEventsLoading(true);
+    const { data } = await supabase
+      .from('events')
+      .select('*')
+      .order('start_date', { ascending: false });
+    setAllEvents(data || []);
+    // Seed eventEdits with current values
+    const edits = {};
+    (data || []).forEach(e => {
+      edits[e.id] = {
+        name: e.name || '',
+        short_name: e.short_name || '',
+        start_date: e.start_date || '',
+        end_date: e.end_date || '',
+        course_name: e.course_name || '',
+        team_a_name: e.team_a_name || '',
+        team_b_name: e.team_b_name || '',
+        hcp_allowance: e.hcp_allowance ?? 85,
+        rules_md: e.rules_md || '',
+        fines_md: e.fines_md || '',
+        transport_md: e.transport_md || '',
+        bios_md: e.bios_md || '',
+      };
+    });
+    setEventEdits(edits);
+    setEventsLoading(false);
+  }
+
+  async function setEventField(eventId, field, value) {
+    setEventEdits(prev => ({ ...prev, [eventId]: { ...prev[eventId], [field]: value } }));
+  }
+
+  async function saveEventEdits(eventId) {
+    setEventBusy(eventId);
+    setEventMsg(prev => ({ ...prev, [eventId]: '' }));
+    try {
+      const updates = eventEdits[eventId];
+      const res = await fetch('/api/admin/event-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ eventId, updates }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEventMsg(prev => ({ ...prev, [eventId]: '✓ Saved' }));
+      await loadAllEvents();
+      setTimeout(() => setEventMsg(prev => ({ ...prev, [eventId]: '' })), 2000);
+    } catch (err) {
+      setEventMsg(prev => ({ ...prev, [eventId]: `✗ ${err.message}` }));
+    } finally {
+      setEventBusy(null);
+    }
+  }
+
+  async function activateEvent(eventId) {
+    setEventBusy(eventId);
+    setEventMsg(prev => ({ ...prev, [eventId]: '' }));
+    try {
+      const res = await fetch('/api/admin/event-activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ eventId, archivePrevious: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEventMsg(prev => ({ ...prev, [eventId]: '✓ Activated · previous event archived' }));
+      setActivateConfirm(null);
+      await loadAllEvents();
+      setTimeout(() => setEventMsg(prev => ({ ...prev, [eventId]: '' })), 3000);
+    } catch (err) {
+      setEventMsg(prev => ({ ...prev, [eventId]: `✗ ${err.message}` }));
+    } finally {
+      setEventBusy(null);
+    }
+  }
+
+  async function archiveEvent(eventId) {
+    setEventBusy(eventId);
+    setEventMsg(prev => ({ ...prev, [eventId]: '' }));
+    try {
+      const res = await fetch('/api/admin/event-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ eventId, updates: { is_archived: true } }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEventMsg(prev => ({ ...prev, [eventId]: '✓ Archived' }));
+      await loadAllEvents();
+      setTimeout(() => setEventMsg(prev => ({ ...prev, [eventId]: '' })), 2000);
+    } catch (err) {
+      setEventMsg(prev => ({ ...prev, [eventId]: `✗ ${err.message}` }));
+    } finally {
+      setEventBusy(null);
+    }
+  }
+
+  async function createNewEvent() {
+    setCreateBusy(true);
+    setCreateMsg('');
+    try {
+      let payload;
+      try {
+        payload = JSON.parse(createJson);
+      } catch {
+        throw new Error('Invalid JSON — check your braces and commas');
+      }
+      const res = await fetch('/api/admin/event-seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCreateMsg(`✓ Created event "${data.slug}" with ${data.players} players, ${data.pairings} pairings. Default PIN: ${data.defaultPin}`);
+      setCreateJson('');
+      await loadAllEvents();
+    } catch (err) {
+      setCreateMsg(`✗ ${err.message}`);
+    } finally {
+      setCreateBusy(false);
+    }
   }
 
   // Recompute all playing_hcps when allowance changes
@@ -322,6 +533,7 @@ export default function AdminPage({ player, token }) {
             ['scores',    '⛳', 'Scores'],
             ['handicaps', '📋', 'Handicaps'],
             ['pins',      '🔑', 'PINs'],
+            ['events',    '🗓', 'Events'],
             ['reset',     '⚠️', 'Reset'],
           ].map(([key, icon, label]) => {
             const active = tab === key;
@@ -634,6 +846,183 @@ export default function AdminPage({ player, token }) {
             <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.15)', borderRadius: 3, fontSize: 10, color: 'rgba(245,240,232,0.4)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontStyle: 'italic', textAlign: 'center' }}>
               Setting a new PIN clears the player's device binding so they can sign in fresh.
             </div>
+          </div>
+        )}
+
+        {/* ══════════════ EVENTS TAB ══════════════ */}
+        {tab === 'events' && (
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            {/* Intro */}
+            <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 3, padding: '12px 16px', marginBottom: 16, fontSize: 11, color: 'rgba(245,240,232,0.6)', fontFamily: 'Helvetica Neue,Arial,sans-serif', lineHeight: 1.6 }}>
+              <div style={{ color: C.gold, fontSize: 12, marginBottom: 4 }}>🗓 Tournament events</div>
+              Manage every tournament. Edit metadata, set the active event (which switches the live app), archive past events, or create a new one with the JSON-paste form below.
+            </div>
+
+            {/* Create new event */}
+            {!showCreateForm ? (
+              <button onClick={() => setShowCreateForm(true)} style={{
+                width: '100%', padding: '12px 16px', marginBottom: 16,
+                background: 'rgba(106,211,93,0.12)', border: '1px solid rgba(106,211,93,0.4)',
+                borderRadius: 3, color: '#6ad35d', fontSize: 13, cursor: 'pointer',
+                fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 0.5,
+              }}>
+                ➕ Create New Event
+              </button>
+            ) : (
+              <div style={{ background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(106,211,93,0.3)', borderRadius: 3, padding: 16, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 13, color: '#6ad35d', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>➕ Create New Event</span>
+                  <button onClick={() => { setShowCreateForm(false); setCreateJson(''); setCreateMsg(''); }}
+                    style={{ background: 'transparent', border: 'none', color: 'rgba(245,240,232,0.5)', fontSize: 12, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>✕ Cancel</button>
+                </div>
+                <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.4)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginBottom: 8, lineHeight: 1.5 }}>
+                  Paste a JSON event spec. Required: <code style={{ color: C.gold }}>slug, name, start_date, end_date, par_json, stroke_index_json, day_format_json, players, pairings</code>. Set <code style={{ color: C.gold }}>"set_active": true</code> to switch the live app to this event.
+                </div>
+                <textarea
+                  value={createJson}
+                  onChange={e => setCreateJson(e.target.value)}
+                  placeholder={SAMPLE_EVENT_JSON}
+                  style={{
+                    width: '100%', boxSizing: 'border-box', minHeight: 240, fontSize: 11,
+                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(245,240,232,0.15)',
+                    borderRadius: 2, color: C.text, padding: 10, fontFamily: 'monospace', resize: 'vertical',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button onClick={() => setCreateJson(SAMPLE_EVENT_JSON)} style={{
+                    flex: 1, padding: 8, background: 'rgba(245,240,232,0.05)', border: '1px solid rgba(245,240,232,0.15)',
+                    borderRadius: 2, color: 'rgba(245,240,232,0.55)', fontSize: 11, cursor: 'pointer',
+                    fontFamily: 'Helvetica Neue,Arial,sans-serif',
+                  }}>📋 Insert template</button>
+                  <button onClick={createNewEvent} disabled={createBusy || !createJson.trim()} style={{
+                    flex: 2, padding: 8,
+                    background: createBusy ? 'rgba(106,211,93,0.05)' : 'rgba(106,211,93,0.18)',
+                    border: '1px solid rgba(106,211,93,0.4)', borderRadius: 2, color: '#6ad35d',
+                    fontSize: 12, cursor: createBusy ? 'default' : 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif',
+                    opacity: !createJson.trim() ? 0.4 : 1,
+                  }}>
+                    {createBusy ? 'Creating…' : '✓ Create event'}
+                  </button>
+                </div>
+                {createMsg && (
+                  <div style={{ marginTop: 10, fontSize: 11, padding: 8, borderRadius: 2,
+                    background: createMsg.startsWith('✓') ? 'rgba(106,211,93,0.08)' : 'rgba(220,60,60,0.1)',
+                    color: createMsg.startsWith('✓') ? '#6ad35d' : 'rgba(220,100,100,0.95)',
+                    fontFamily: 'Helvetica Neue,Arial,sans-serif',
+                  }}>{createMsg}</div>
+                )}
+              </div>
+            )}
+
+            {/* Existing events list */}
+            {eventsLoading && <div style={{ textAlign: 'center', color: 'rgba(245,240,232,0.4)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontSize: 12, padding: 20 }}>Loading events…</div>}
+            {!eventsLoading && allEvents.length === 0 && (
+              <div style={{ textAlign: 'center', color: 'rgba(245,240,232,0.4)', fontFamily: 'Helvetica Neue,Arial,sans-serif', fontSize: 12, padding: 20 }}>
+                No events yet.
+              </div>
+            )}
+
+            {allEvents.map(ev => {
+              const expanded = expandedEventId === ev.id;
+              const edits = eventEdits[ev.id] || {};
+              const busy = eventBusy === ev.id;
+              const msg = eventMsg[ev.id];
+              const status = ev.is_active ? 'Active' : ev.is_archived ? 'Archived' : 'Draft';
+              const statusColor = ev.is_active ? '#6ad35d' : ev.is_archived ? 'rgba(245,240,232,0.4)' : 'rgba(201,168,76,0.7)';
+              const statusBg = ev.is_active ? 'rgba(106,211,93,0.12)' : ev.is_archived ? 'rgba(245,240,232,0.04)' : 'rgba(201,168,76,0.08)';
+              return (
+                <div key={ev.id} style={{
+                  background: 'rgba(0,0,0,0.18)', border: `1px solid ${ev.is_active ? 'rgba(106,211,93,0.3)' : 'rgba(245,240,232,0.06)'}`,
+                  borderRadius: 3, marginBottom: 10, overflow: 'hidden',
+                }}>
+                  {/* Compact header row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: 14, color: C.text }}>{ev.name}</span>
+                        <span style={{ fontSize: 8, letterSpacing: 1.5, textTransform: 'uppercase', padding: '2px 6px', borderRadius: 2, background: statusBg, color: statusColor, border: `1px solid ${statusColor}40`, fontFamily: 'Helvetica Neue,Arial,sans-serif' }}>{status}</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: 'rgba(245,240,232,0.45)', fontFamily: 'Helvetica Neue,Arial,sans-serif', marginTop: 3 }}>
+                        {ev.slug} · {ev.start_date} → {ev.end_date}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {!ev.is_active && (
+                        <button onClick={() => activateConfirm === ev.id ? activateEvent(ev.id) : setActivateConfirm(ev.id)}
+                          disabled={busy}
+                          style={{
+                            padding: '6px 10px', fontSize: 11, borderRadius: 2,
+                            background: activateConfirm === ev.id ? 'rgba(106,211,93,0.3)' : 'rgba(106,211,93,0.12)',
+                            border: '1px solid rgba(106,211,93,0.4)', color: '#6ad35d',
+                            cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif',
+                          }}>
+                          {activateConfirm === ev.id ? '⚠️ Tap again — confirm switch' : '⚡ Set Active'}
+                        </button>
+                      )}
+                      {!ev.is_archived && !ev.is_active && (
+                        <button onClick={() => archiveEvent(ev.id)} disabled={busy}
+                          style={{
+                            padding: '6px 10px', fontSize: 11, borderRadius: 2,
+                            background: 'rgba(245,240,232,0.05)', border: '1px solid rgba(245,240,232,0.2)',
+                            color: 'rgba(245,240,232,0.55)', cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif',
+                          }}>
+                          🗄 Archive
+                        </button>
+                      )}
+                      <button onClick={() => { setExpandedEventId(expanded ? null : ev.id); setActivateConfirm(null); }}
+                        style={{
+                          padding: '6px 10px', fontSize: 11, borderRadius: 2,
+                          background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)',
+                          color: C.gold, cursor: 'pointer', fontFamily: 'Helvetica Neue,Arial,sans-serif',
+                        }}>
+                        {expanded ? '▴ Close' : '▾ Edit'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded edit form */}
+                  {expanded && (
+                    <div style={{ padding: '0 14px 14px', borderTop: '1px solid rgba(245,240,232,0.06)' }}>
+                      <FieldRow label="Name" value={edits.name} onChange={v => setEventField(ev.id, 'name', v)} />
+                      <FieldRow label="Short name" value={edits.short_name} onChange={v => setEventField(ev.id, 'short_name', v)} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <FieldRow label="Start date" value={edits.start_date} onChange={v => setEventField(ev.id, 'start_date', v)} type="date" />
+                        <FieldRow label="End date" value={edits.end_date} onChange={v => setEventField(ev.id, 'end_date', v)} type="date" />
+                      </div>
+                      <FieldRow label="Course" value={edits.course_name} onChange={v => setEventField(ev.id, 'course_name', v)} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <FieldRow label="Team A name" value={edits.team_a_name} onChange={v => setEventField(ev.id, 'team_a_name', v)} />
+                        <FieldRow label="Team B name" value={edits.team_b_name} onChange={v => setEventField(ev.id, 'team_b_name', v)} />
+                      </div>
+                      <FieldRow label="HCP allowance %" value={edits.hcp_allowance} onChange={v => setEventField(ev.id, 'hcp_allowance', parseInt(v) || 0)} type="number" />
+
+                      <FieldRow label="Rules (markdown)" value={edits.rules_md} onChange={v => setEventField(ev.id, 'rules_md', v)} multiline />
+                      <FieldRow label="Fines (markdown)" value={edits.fines_md} onChange={v => setEventField(ev.id, 'fines_md', v)} multiline />
+                      <FieldRow label="Travel & stay (markdown)" value={edits.transport_md} onChange={v => setEventField(ev.id, 'transport_md', v)} multiline />
+                      <FieldRow label="Player bios (markdown)" value={edits.bios_md} onChange={v => setEventField(ev.id, 'bios_md', v)} multiline />
+
+                      <button onClick={() => saveEventEdits(ev.id)} disabled={busy} style={{
+                        marginTop: 10, width: '100%', padding: 10,
+                        background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.4)',
+                        borderRadius: 3, color: C.gold, fontSize: 12, cursor: 'pointer',
+                        fontFamily: 'Helvetica Neue,Arial,sans-serif', letterSpacing: 0.5,
+                      }}>
+                        {busy ? 'Saving…' : '💾 Save changes'}
+                      </button>
+                    </div>
+                  )}
+
+                  {msg && (
+                    <div style={{
+                      padding: '8px 14px', fontSize: 11,
+                      background: msg.startsWith('✓') ? 'rgba(106,211,93,0.08)' : 'rgba(220,60,60,0.1)',
+                      color: msg.startsWith('✓') ? '#6ad35d' : 'rgba(220,100,100,0.95)',
+                      fontFamily: 'Helvetica Neue,Arial,sans-serif',
+                    }}>{msg}</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
